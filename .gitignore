@@ -7,6 +7,7 @@
 *.dvi
 *.pdf
 *.log
+*.d
 
 LaTeX/*
 Scrap/*
