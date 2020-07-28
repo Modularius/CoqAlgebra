@@ -255,6 +255,10 @@ Notation "\fbigoplus_ i F" := (fdDSBasis_lmod.finType_fdFreeLmod (fun i => F)).
 Notation "\fbigoplus F" := (fdDSBasis_lmod.finType_fdFreeLmod F).
 Notation "\fbigoplus_ ( i : t ) F" := (fdDSBasis_lmod.finType_fdFreeLmod (fun i : t => F)).
 Notation "\fbigoplus_ ( i 'in' A ) F" := (fdDSBasis_lmod.seq_fdFreeLmod (filter F (fun i => i \in A))).
+Notation nullBasis := fdDSBasis_lmod.nullBasis.
+Notation pairBasis := fdDSBasis_lmod.pairBasis.
+Notation null_fdFreeLmod := fdDSBasis_lmod.null_fdFreeLmod.
+Notation pair_fdFreeLmod := fdDSBasis_lmod.pair_fdFreeLmod.
 
 
 Module freeLmodMorphism.
@@ -264,6 +268,7 @@ Module freeLmodMorphism.
       := fun b1 b2 => lmodBasisProj (basis M2) b2 (f ((basis M1) b1)).
   End Def.
 End freeLmodMorphism.
+Notation freeLmod_linear_to_matrix := freeLmodMorphism.linear_to_matrix.
 
 
 Close Scope ring_scope.

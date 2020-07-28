@@ -23,12 +23,9 @@ Module linKernel.
     Definition ker_elem := [qualify x | x \in inKer].
 
     Lemma ker_subModule : GRing.submod_closed (ker_elem).
-    Proof. split.
+    Proof. split=>[|a x y].
       by rewrite qualifE unfold_in GRing.linear0.
-      move=>a x y Hx Hy.
-      rewrite qualifE unfold_in GRing.linearP.
-      rewrite unfold_in in Hx; apply (rwP eqP) in Hx.
-      rewrite unfold_in in Hy; apply (rwP eqP) in Hy.
+      rewrite qualifE !unfold_in !GRing.linearP -!(rwP eqP)=>Hx Hy.
       by rewrite Hx Hy GRing.addr0 GRing.scaler0.
     Qed.
 
@@ -116,32 +113,29 @@ Export linCoimage.Exports.
 
 Module linID.
   Section Def.
-    Definition map {R : ringType} (M : lmodType R) := GRing.idfun_linear M.
+    Variable (R : ringType) (M : lmodType R).
+    Definition map := GRing.idfun_linear M.
   End Def.
 End linID.
 
 Module linConcat.
   Section Def.
-    Definition map {R : ringType} {A B C : lmodType R}
-      (f : {linear A -> B})
-      (g : {linear B -> C})
-     : {linear A -> C}
-     := GRing.comp_linear g f.
+    Variable (R : ringType) (A B C : lmodType R)
+    (f : {linear A -> B}) (g : {linear B -> C}).
+    
+    Definition map : {linear A -> C} := GRing.comp_linear g f.
   End Def.
 End linConcat.
 
 
 Module linZero.
   Section Def.
-    Lemma lmod_zero_add {R : ringType} (M1 M2 : lmodType R) : additive (fun _ : M1 => @GRing.zero M2).
-    Proof. by rewrite /(additive _)/morphism_2 GRing.addrN. Qed.
-    Lemma lmod_zero_lin {R : ringType} (M1 M2 : lmodType R) : linear (fun _ : M1 => @GRing.zero M2).
-    Proof. by rewrite /(linear _)=>a x y; rewrite GRing.scaler0 GRing.addr0. Qed.
-    Lemma lmod_zero_sca {R : ringType} (M1 M2 : lmodType R) : scalable (fun _ : M1 => @GRing.zero M2).
-    Proof. by rewrite /(scalable _)/morphism_1=> r x; rewrite GRing.scaler0. Qed.
+    Variable (R : ringType) (M1 M2 : lmodType R).
 
-    Definition map {R : ringType} (M1 M2 : lmodType R)
-     := Linear (GRing.Linear.Class (@lmod_zero_add R M1 M2) (@lmod_zero_sca R M1 M2)).
+    Lemma lmod_zero_lin : linear (fun _ : M1 => @GRing.zero M2).
+    Proof. by rewrite /(linear _)=>a x y; rewrite GRing.scaler0 GRing.addr0. Qed.
+
+    Definition map := Linear lmod_zero_lin.
   End Def.
 End linZero.
 

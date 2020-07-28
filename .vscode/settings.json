@@ -1,0 +1,8 @@
+{
+    "coqtop.args": [
+    
+    ]
+    "files.exclude": {
+        "**/*.{vo,v.d,glob,aux,bak,v#,vok,vos}": true
+    }
+}

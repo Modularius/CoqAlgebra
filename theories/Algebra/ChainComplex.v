@@ -48,9 +48,9 @@ Module ExactSequence.
       M1 : lmodType R; M2 : lmodType R; M3 : lmodType R;
       ses_f : {linear M1 -> M2};
       ses_g : {linear M2 -> M3};
-      ses_I :> isExact (linZero.map (lmodZero.type R) M1) ses_f;
-      ses_E :> isExact ses_f ses_g;
-      ses_S :> isExact ses_g (linZero.map M3 (lmodZero.type R));
+      ses_I : isExact (linZero.map (lmodZero.type R) M1) ses_f;
+      ses_E : isExact ses_f ses_g;
+      ses_S : isExact ses_g (linZero.map M3 (lmodZero.type R));
       ses := shortExactSequence M1 M2 M3 ses_f ses_g ses_I ses_E ses_S;
     }.
 
@@ -87,23 +87,26 @@ Unset Strict Implicit.
 Module subLmodSES.
   Section Def.
     Variable (R : ringType) (M : lmodType R) (S : subLmodType M).
-    Program Definition type := [ses 0 --> S --> M --> (quotLmod S) --> 0 | (subLmodIncl S), (quotLmodProj S)] _ _ _.
-    Next Obligation.
-    split=>[|y H]=>//=.
-    refine(ex_intro _ tt _).
-    simpl in H.
-    rewrite /(eq_op _)=>/=.
-    by rewrite eq_sym.
+
+    Lemma isExact_ZeroToS : ExactSequence.isExact (linZero.map (lmodZeroType R) S) (subLmodIncl S).
+    Proof. split=>[|y H]=>//.
+      refine(ex_intro _ tt _); move: H.
+      by rewrite /(eq_op _) eq_sym.
     Qed.
-    Next Obligation.
-    split=>[x|y H]=>//=.
-    rewrite /quotPiLmod.proj=>/=.
+
+    Lemma isExact_SToQ : ExactSequence.isExact (subLmodIncl S) (quotLmodProj S).
+    Proof. split=>[x|y H]=>//=.
+      rewrite /quotPiLmod.proj=>/=.
     Admitted.
-    Next Obligation.
-    split=>[x|y H]=>//=.
+
+    Lemma isExact_QToZero : ExactSequence.isExact (quotLmodProj S)
+      (linZero.map (quotLmod S) (lmodZeroType R)).
+    Proof. split=>[x|y H]=>//=.
     refine(ex_intro _ (repr y) _).
-    by rewrite /quotPiLmod.proj reprK.
+      by rewrite /quotPiLmod.proj reprK.
     Qed.
+
+    Definition type := [ses 0 --> S --> M --> (quotLmod S) --> 0 | (subLmodIncl S), (quotLmodProj S)] isExact_ZeroToS isExact_SToQ isExact_QToZero.
   End Def.
 End subLmodSES.
 

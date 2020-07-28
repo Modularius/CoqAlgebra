@@ -1,84 +1,86 @@
 Require Import Coq.Init.Notations.
 Require Import Coq.Init.Datatypes.
-Require Import Coq.Init.Logic.
-Require Import Coq.Lists.List.
 Require Import Coq.Program.Tactics.
-Require Import Coq.Logic.FunctionalExtensionality.
-Require Import Coq.Logic.ProofIrrelevance.
+From Coq.Logic Require Import  FunctionalExtensionality ProofIrrelevance.
 Require Import Coq.Bool.Bool.
-From mathcomp Require Import ssreflect.
-From mathcomp Require Import ssrfun.
-From mathcomp Require Import ssrnat.
-From mathcomp Require Import ssrbool.
-From mathcomp Require Import eqtype.
-From mathcomp Require Import ssralg.
-From mathcomp Require Import bigop.
-From mathcomp Require Import choice.
-From mathcomp Require Import fintype.
+From mathcomp Require Import ssreflect ssrfun eqtype.
+From mathcomp Require Import bigop choice fintype.
+
+Set Warnings "-parsing". (* Some weird bug in ssrbool throws out parsing warnings*)
+  From mathcomp Require Import ssrbool ssrnat.
+Set Warnings "parsing".
+Set Warnings "-ambiguous-paths". (* Some weird bug in ssralg throws out coercion warnings*)
+    From mathcomp Require Import ssralg.
+Set Warnings "ambiguous-paths".
 
 Require Import Algebras Morphism.
 
 Open Scope ring_scope.
 Module Hom.
+  Section Def.
+    Variable (R : ringType) (U V : lmodType R).
+    Definition add (f g : {linear U -> V}) : {linear U -> V}
+    := (GRing.add_fun_linear f g).
 
-Definition add {R : ringType} (U V : lmodType R) (f g : {linear U -> V}) : {linear U -> V}
- := (GRing.add_fun_linear f g).
+    Definition neg (f : {linear U -> V}) : {linear U -> V}
+    := (GRing.sub_fun_linear (linZero.map U V) f).
 
-Definition neg {R : ringType} (U V : lmodType R) (f : {linear U -> V}) : {linear U -> V}
- := (GRing.sub_fun_linear (linZero.map U V) f).
+    Program Definition zmodMixin_hom
+    := @ZmodMixin {linear U -> V} (linZero.map U V) (neg) (add) _ _ _ _.
+    Next Obligation. Admitted.
+    Next Obligation. Admitted.
+    Next Obligation. Admitted.
+    Next Obligation. Admitted.
 
+    Definition zmodType_hom := ZmodType {linear U -> V} zmodMixin_hom.
 
-Program Definition zmodMixin {R : ringType} (U V : lmodType R)
- := @ZmodMixin _ (linZero.map U V) (neg U V) (add U V) _ _ _ _.
-Next Obligation. Admitted.
-Next Obligation. Admitted.
-Next Obligation. Admitted.
-Next Obligation. Admitted.
+    Program Definition lmodMixin_hom
+    := @LmodMixin R (@ZmodType {linear U -> V} zmodMixin_hom).
+Check zmodMixin_hom.
+    (*
+    Definition zmod {R : ringType} (U V : lmodType R)
+    := ZmodType _ (zmodMixin U V).
+    *)
 
-(*
-Definition zmod {R : ringType} (U V : lmodType R)
- := ZmodType _ (zmodMixin U V).
-*)
-
-Axiom class : forall {R : ringType} (U V : lmodType R)
- , GRing.Lmodule.class_of R {linear U -> V}.
-
-Canonical type {R : ringType} (U V : lmodType R) := @GRing.Lmodule.Pack R (Phant R) _ (class U V) {linear U -> V}.
-
-
-
-Definition leftHomMorph {R : ringType} {U V : lmodType R}
-  (f : type U V) (W : lmodType R) : type W U -> type W V
-    := fun g : {linear W -> U} => GRing.comp_linear f g.
-
-Axiom leftHomMorph_lin : forall {R : ringType} {U V : lmodType R}
-  (f : {linear U -> V}) (W : lmodType R)
-    , linear (leftHomMorph f W).
+    Axiom class : GRing.Lmodule.class_of R {linear U -> V}.
+Print ZmodType.
+    Definition type := @ZmodType {linear U -> V} zmodMixin_hom.
+    Canonical type := @GRing.Lmodule.Pack R (Phant R) _ (class U V) {linear U -> V}.
 
 
-Definition rightHomMorph {R : ringType} (T : lmodType R) {U V : lmodType R}
-  (f : type U V) : type V T -> type U T
-    := fun g : {linear V -> T} => GRing.comp_linear g f.
 
-Axiom rightHomMorph_lin : forall {R : ringType} (T : lmodType R) {U V : lmodType R}
-  (f : {linear U -> V})
-    , linear (rightHomMorph T f).
+    Definition leftHomMorph {R : ringType} {U V : lmodType R}
+      (f : type U V) (W : lmodType R) : type W U -> type W V
+        := fun g : {linear W -> U} => GRing.comp_linear f g.
 
-Module Exports.
+    Axiom leftHomMorph_lin : forall {R : ringType} {U V : lmodType R}
+      (f : {linear U -> V}) (W : lmodType R)
+        , linear (leftHomMorph f W).
 
-Canonical leftHomMorphLin {R : ringType} {U V : lmodType R}
-  (f : type U V) (W : lmodType R) := Linear (leftHomMorph_lin f W).
 
-Canonical rightHomMorphLin {R : ringType} (T : lmodType R) {U V : lmodType R}
-  (f : type U V) := Linear (rightHomMorph_lin T f).
+    Definition rightHomMorph {R : ringType} (T : lmodType R) {U V : lmodType R}
+      (f : type U V) : type V T -> type U T
+        := fun g : {linear V -> T} => GRing.comp_linear g f.
 
-Notation homType := type.
-Notation homMorphL := leftHomMorphLin.
-Notation homMorphR := rightHomMorphLin.
-Notation "\Hom( A , B )" := (homType A B) (at level 99).
-Notation "\fHom1( f , B )" := (homMorphL f B) (at level 99).
-Notation "\fHom2( A , f )" := (homMorphR A f) (at level 99).
-End Exports.
+    Axiom rightHomMorph_lin : forall {R : ringType} (T : lmodType R) {U V : lmodType R}
+      (f : {linear U -> V})
+        , linear (rightHomMorph T f).
+
+    Module Exports.
+
+    Canonical leftHomMorphLin {R : ringType} {U V : lmodType R}
+      (f : type U V) (W : lmodType R) := Linear (leftHomMorph_lin f W).
+
+    Canonical rightHomMorphLin {R : ringType} (T : lmodType R) {U V : lmodType R}
+      (f : type U V) := Linear (rightHomMorph_lin T f).
+
+  Notation homType := type.
+  Notation homMorphL := leftHomMorphLin.
+  Notation homMorphR := rightHomMorphLin.
+  Notation "\Hom( A , B )" := (homType A B) (at level 99).
+  Notation "\fHom1( f , B )" := (homMorphL f B) (at level 99).
+  Notation "\fHom2( A , f )" := (homMorphR A f) (at level 99).
+  End Exports.
 
 End Hom.
 Export Hom.Exports.

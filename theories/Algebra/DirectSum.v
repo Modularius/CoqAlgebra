@@ -1,6 +1,6 @@
 From Coq.Init Require Import Notations Datatypes.
 Require Import Coq.Program.Tactics.
-From Coq.Logic Require Import FunctionalExtensionality ProofIrrelevance.
+From Coq.Logic Require Import FunctionalExtensionality.
 From mathcomp Require Import ssreflect ssrfun seq.
 From mathcomp Require Import eqtype choice fintype bigop generic_quotient tuple finfun.
 

@@ -1,10 +1,14 @@
 Require Import Coq.Program.Tactics.
 From mathcomp Require Import ssreflect ssrfun.
-From mathcomp Require Import eqtype choice ssralg seq bigop.
+From mathcomp Require Import eqtype choice seq bigop.
 
 Set Warnings "-parsing". (* Some weird bug in ssrbool throws out parsing warnings*)
     From mathcomp Require Import ssrbool.
 Set Warnings "parsing".
+
+Set Warnings "-ambiguous-paths". (* Some weird bug in ssralg throws out coercion warnings*)
+    From mathcomp Require Import ssralg.
+Set Warnings "ambiguous-paths".
 
 Set Implicit Arguments.
 Unset Strict Implicit.
