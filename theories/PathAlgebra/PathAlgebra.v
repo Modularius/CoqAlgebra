@@ -16,8 +16,8 @@ Open Scope ring_scope.
 Module PathAlg.
 
   Section Def.
-  Variables (R : ringType) (Q : finQuiverType).
-  Local Notation lmod := (PAMul.lmod R Q).
+  Variables (R : comRingType) (Q : finQuiverType).
+  Local Notation lmod := (R \LC^(pathType Q)).
   Local Notation Add := (@GRing.add lmod).
   Local Notation Neg := (@GRing.opp lmod).
   Local Notation Zero := (@GRing.zero lmod).
@@ -46,19 +46,15 @@ Module PathAlg.
     Lemma one_neq_zero : One != Zero.
     Proof. rewrite /One/Zero.
       apply (rwP negP).
-      rewrite /not=>H.
-      apply (rwP eqP) in H.
-      assert (A:=equal_f H (\e_(Quiver.getOneVertex Q))); clear H.
-      simpl in A.
-      assert(B := GRing.oner_neq0 R).
-      rewrite /negb in B.
-      rewrite A in B.
+      rewrite /not -(rwP eqP)=>H.
+      assert (A:=equal_f H (\e_(Quiver.getOneVertex Q))); clear H; move:A=>/=A.
+      assert(B := GRing.oner_neq0 R); move: B=>/=.
+      rewrite /negb A.
       case ((GRing.zero R) == (GRing.zero R)) as []eqn:E.
-      rewrite E in B=>//=.
-      rewrite eq_refl in E=>//=.
+      rewrite E//; move: E.
+      by rewrite eq_refl.
     Qed.
-    Definition PathAlg_ringMixin
-      := RingMixin
+    Definition PathAlg_ringMixin := RingMixin
         (PAMul.MulA R Q) (PAMul.left_id1 R Q) (PAMul.right_id1 R Q)
         left_d right_d one_neq_zero.
 
@@ -72,14 +68,22 @@ Module PathAlg.
     Proof. move=> a u1 u2.
       rewrite /(GRing.scale _)=>/=; rewrite /PAMul.Mul/formalLC.Scale.
       apply functional_extensionality=>p.
-      case p=>[s|t];
-      by rewrite big_distrr (eq_bigr _ (fun _ _ => (GRing.mulrA _ _ _))).
+      rewrite GRing.mulr_sumr.
+      refine (eq_bigr _ _)=>[[q1 q2] _]=>/=.
+      by rewrite GRing.mulrA.
     Qed.
     Definition lalg := LalgType R ring lalgAxiom.
   End Lalg.
 
   Section Alg.
-    Axiom algAxiom : @GRing.Algebra.axiom R lalg.
+    Lemma algAxiom : @GRing.Algebra.axiom R lalg.
+    Proof. move=>r x y.
+      rewrite lalgAxiom/(GRing.scale _)/(GRing.mul _)=>/=.
+      rewrite /formalLC.Scale/Mul.
+      apply functional_extensionality=>p.
+      refine (eq_bigr _ _); move=> [q1 q2] _=>/=.
+      by rewrite !GRing.mulrA (@GRing.mulrC R r (x _)).
+    Qed.
 
     Definition alg := AlgType R lalg algAxiom.
   End Alg.

@@ -14,16 +14,24 @@ Set Warnings "-ambiguous-paths". (* Some weird bug in ssralg throws out coercion
 Set Warnings "ambiguous-paths".
 
 Require Import Algebras Morphism.
+Import GRing.
 
 Open Scope ring_scope.
 Module Hom.
   Section Def.
     Variable (R : ringType) (U V : lmodType R).
     Definition add (f g : {linear U -> V}) : {linear U -> V}
-    := (GRing.add_fun_linear f g).
+    := (add_fun_linear f g).
 
     Definition neg (f : {linear U -> V}) : {linear U -> V}
-    := (GRing.sub_fun_linear (linZero.map U V) f).
+    := (sub_fun_linear (linZero.map U V) f).
+
+    Lemma addA : associative add.
+    Proof. move=>x y z.
+    destruct x, y, z.
+    rewrite/add=>/=.
+    apply linearPZ.
+    unfold AddLinear=>/=.
 
     Program Definition zmodMixin_hom
     := @ZmodMixin {linear U -> V} (linZero.map U V) (neg) (add) _ _ _ _.

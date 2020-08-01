@@ -252,21 +252,7 @@ Module lmodFinSet.
 
     Definition Build {T : finType} (elem : T -> M) (I : injective elem) (ND : non_degenerate elem)
     := Pack (Class (lmodSet.Build I ND)).
-(*
-    Section Subset.
-      Variable (B : lmodSet.type M) (f : finInjType B).
-      Lemma sub_inj : injective (B \o f).
-      Proof. rewrite/comp=>x y H.
-      apply (@typeIsInjective _ _ B) in H.
-      destruct f.
-      by apply i in H. Qed.
 
-      Lemma sub_nondeg : non_degenerate (B \o f).
-      Proof. rewrite /comp=>x.
-      apply (@typeIsNonDegenerate _ _ B). Qed.
-      Definition subsetFrom := @Build _ (B \o f) sub_inj sub_nondeg.
-    End Subset.
-*)
     Definition to_set (T : type)
     := lmodSet.Pack (base (class_of T)).
 
@@ -337,46 +323,74 @@ Module linExtend.
   Section Def.
     Variable (R : ringType) (M1 : lmodType R) (M2 : lmodType R).
       Section Risky.
-      Variable (B1 : lmodBasisSetType M1) (B2 : lmodBasisSetType M2)
-        (f : B1 -> B2).
+      Variable (B1 : lmodBasisSetType M1) (B2 : lmodBasisSetType M2).
 
-      Axiom extendLinearlyR : {linear M1 -> M2}.
-
+      Axiom extendLinearlyR : (B1 -> B2 -> R) -> {linear M1 -> M2}.
+(*
       Axiom extendLinearlyRK :
-        forall b : B1, (extendLinearlyR (B1 b)) == B2 (f b).
+        forall (f : B1 -> B2 -> R) (b : B1), (extendLinearlyR f (B1 b)) = B2 (f b).
+*)
+      Axiom extendLinearlyR1 : (B1 -> M2) -> {linear M1 -> M2}.
+
+      Axiom extendLinearlyR1K :
+        forall (f : B1 -> M2) (b : B1), (extendLinearlyR1 f (B1 b)) = (f b).
+
+      Axiom extendLinearlyR1Eq :
+      forall (f g : B1 -> M2), (extendLinearlyR1 f = extendLinearlyR1 g) <-> forall (b : B1), f b = g b.
+      
+      Axiom extendLinearlyR1Eq2 :
+        forall (f g : B1 -> M2) (x y : M1),
+        (extendLinearlyR1 f x = extendLinearlyR1 g y)
+         <-> forall (b : B1),
+         (lmodBasisProj B1 b x) *: (f b) = (lmodBasisProj B1 b y) *: (g b).
     End Risky.
 
     Section Safe.
-      Variable (B1 : lmodFinBasisType M1) (B2 : lmodBasisSetType M2)
-        (f : B1 -> B2).
+      Variable (B1 : lmodFinBasisType M1) (B2 : lmodFinBasisType M2)
+        (f : B1 -> B2 -> R).
       
-      Definition extendLinearly_fn := fun m => \sum_(b : B1) (lmodBasisProj B1 b m) *: B2 (f b).
+      Definition extendLinearly_fn := fun m =>
+        \sum_(b1 : B1)
+          \sum_(b2 : B2)
+              ((lmodBasisProj B1 b1 m) * (f b1 b2)) *: B2 b2.
       Lemma extendLinearly_lin : linear extendLinearly_fn.
       Proof.
         rewrite/extendLinearly_fn=>r x y.
-        rewrite GRing.scaler_sumr.
-        rewrite -big_split=>/=.
-        assert(forall b, true
-          -> lmodBasisProj B1 b (r *: x + y) *: B2 (f b)
-          = (r *: (lmodBasisProj B1 b x *: B2 (f b)) +
-              lmodBasisProj B1 b y *: B2 (f b))).
-        by move=> b _; rewrite GRing.linearP GRing.scalerDl -GRing.scalerA.
-        by rewrite (eq_bigr _ H).
+        rewrite GRing.scaler_sumr -big_split=>/=.
+        assert(H1 : forall b1, true ->
+          \sum_(b2 : B2)
+            lmodBasisProj B1 b1 (r *: x + y) * (f b1 b2) *: B2 b2
+          = (r *: \sum_(b2 : B2)
+            ((lmodBasisProj B1 b1 x) * (f b1 b2)) *: B2 b2) +
+                 \sum_(b2 : B2)
+            ((lmodBasisProj B1 b1 y) * (f b1 b2)) *: B2 b2
+            ).
+        move=> b1 _.
+        rewrite GRing.scaler_sumr -big_split=>/=.
+        assert(H2 : forall b2, true ->
+          lmodBasisProj B1 b1 (r *: x + y) * (f b1 b2) *: B2 b2
+          = (r *: (lmodBasisProj B1 b1 x * (f b1 b2) *: B2 b2)) +
+              lmodBasisProj B1 b1 y * (f b1 b2) *: B2 b2).
+        by move=> b2 _; rewrite GRing.linearP GRing.mulrDl GRing.scalerDl !GRing.scalerA GRing.mulrA.
+        by rewrite (eq_bigr _ H2).
+        by rewrite (eq_bigr _ H1).
       Qed.
       Definition extendLinearly := Linear extendLinearly_lin.
-      
+      (*
       Lemma extendLinearlyK :
-        forall b : B1, (extendLinearly_fn (B1 b)) == B2 (f b).
+        forall (b1 : B1) (b2 : B2), (extendLinearly_fn (B1 b1)) = (f b1 b2) *: B2 b2.
       Proof.
-        rewrite /extendLinearly_fn=>b.
-      Admitted.
+        rewrite /extendLinearly_fn=>b1 b2.
+      Admitted.*)
     End Safe.
   End Def.
   Module Exports.
     Notation extendLinearly := extendLinearly.
-    Notation extendLinearlyK := extendLinearlyK.
+    (*Notation extendLinearlyK := extendLinearlyK.*)
+    Notation extendLinearlyRisky1 := extendLinearlyR1.
+    Notation extendLinearlyRisky1K := extendLinearlyR1K.
     Notation extendLinearlyRisky := extendLinearlyR.
-    Notation extendLinearlyRiskyK := extendLinearlyRK.
+    (*Notation extendLinearlyRiskyK := extendLinearlyRK.*)
   End Exports.
 End linExtend.
 Export linExtend.Exports.

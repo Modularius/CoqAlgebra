@@ -87,6 +87,8 @@ Module fdQuivRep.
   := fun i : \V_Q => \dim(V_0 V i).
 
   Module Exports.
+    Notation "\Vec^fd_( V )( i )" := (V_0 V i) (at level 0).
+    Notation "\Map^fd_( V )( a )" := (V_1 V a) (at level 0).
     Notation fdQuiverRepType := type.
     Coercion fdToType : type >-> QuivRep.type.
   End Exports.

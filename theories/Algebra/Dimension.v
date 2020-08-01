@@ -101,8 +101,8 @@ Module ringIBN.
         (exists b : {linear (R \lmod^ n) -> (R \lmod^ m)},
           bijective b) -> n == m.
 
-    Record mixin_of (R : ringType) := Mixin { _ : axiom R; }.
-    Record type := Pack { sort : _;  class_of : mixin_of sort; }.
+    Record mixin (R : ringType) := Mixin { _ : axiom R; }.
+    Record type := Pack { sort : _;  class_of : mixin sort; }.
     Lemma cRingIBN : forall (R : comRingType), axiom R. Proof.
     move=>R n m E.
     destruct E as [f E].
@@ -110,15 +110,17 @@ Module ringIBN.
     unfold ringCartProd.type in f.
     Admitted.
 
-    Axiom cRingToRingIBN : forall (R : comRingType), type.
+    Axiom cRingToRingIBNMixin : forall (R : comRingType), mixin R.
+    Definition cRingToRingIBN (R : comRingType) : type
+     := Pack (cRingToRingIBNMixin R).
   End Def.
 
   Module Exports.
     Notation ringIBNType := type.
     Coercion sort : type >-> ringType.
-    Coercion class_of : type >-> mixin_of.
+    Coercion class_of : type >-> mixin.
     Notation cRingToRingIBN := cRingToRingIBN.
-    (* Coercion cRingToRingIBN : comRingType >-> type. *)
+    Coercion cRingToRingIBN : comRingType >-> type.
   End Exports.
 End ringIBN.
 Export ringIBN.Exports.
@@ -158,15 +160,15 @@ Module fdFreeLmodDimension.
       (dim (fdSubLmod \image(f))) + (dim (fdSubLmod \ker(f))) == (dim M).
 *)
     Lemma dim_of_DSPair : forall (M1 M2 : fdFreeLmodType R),
-      dim (fdDSBasis_lmod.pair_fdFreeLmod M1 M2) = (dim M1 + dim M2).
+      dim (pair_fdFreeLmod M1 M2) = (dim M1 + dim M2).
     Proof. move=> M1 M2.
-      by rewrite /fdDSBasis_lmod.pair_fdFreeLmod/dim/basis_number card_sum.
+      by rewrite /pair_fdFreeLmod/dim/basis_number card_sum.
     Qed.
 
     Lemma dim_of_DS : forall {F : finType} (I : F -> fdFreeLmodType R),
       dim (\fbigoplus I) = \sum_f (dim (I f)).
     Proof. move => F I.
-      rewrite /fdDSBasis_lmod.finType_fdFreeLmod -big_enum enumT=>/=;
+      rewrite /finType_fdFreeLmod/fdFreeLmodFin.type -big_enum enumT =>/=;
       induction(Finite.enum F); by [
       rewrite /dim/basis_number big_nil card_void|
       rewrite dim_of_DSPair big_cons IHl].

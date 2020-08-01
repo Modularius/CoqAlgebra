@@ -28,11 +28,11 @@ Module PAlgBasis.
 *)
     Lemma idemR : forall (p : pathType Q),
       (elem p) * (elem \e_(Path.tail p)) = (elem p).
-    Proof. rewrite/elem=>p; rewrite /(GRing.mul _)=>/=.
-    rewrite /PAMul.Mul/elem.
+    Proof. move=>p; rewrite /(GRing.mul _)=>/=.
+    rewrite /PAMul.Mul.
     apply functional_extensionality=>p'.
     case p'=>s. {
-    case (\e_ (s) == p) as []eqn:E.
+    case (\e_ (s) == p) as []eqn:E. {
     Admitted.
     (*apply (rwP eqP) in E.  rewrite E eq_refl -E. GRing.mulr1=>/=.
     by rewrite E GRing.mul0r. } {

@@ -8,8 +8,8 @@ Set Warnings "-ambiguous-paths". (* Some weird bug in ssralg throws out coercion
     From mathcomp Require Import ssralg.
 Set Warnings "ambiguous-paths".
 
-Require Import Algebras QuiverRep PathAlgebra Submodule.
-Require Import PathAlgebraBasis Basis FreeModules DirectSum.
+Require Import Algebras QuiverRep PathAlgebra Submodule Morphism.
+Require Import PathAlgebraBasis Basis FreeModules DirectSum Dimension.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -22,36 +22,55 @@ Module QuivRepFunc.
     Variable Q : finQuiverType.
 
     Section RepToMod.
-      Variable V : quiverRepType R Q.
+      Variable V : fdQuiverRepType R Q.
 
-      Definition VIndex := fun i => \Vec_(V)(i).
-      Definition AIndex (f : \A_Q -> \V_Q) := fun a => \Vec_(V)(f(a)).
+      Definition VIndex := fun i => \Vec^fd_(V)(i).
+      Definition AIndex (f : \A_Q -> \V_Q) := fun a => \Vec^fd_(V)(f(a)).
 
-      Definition dsum_vertices :=   \bigoplus_(i : \V_Q) fun i => \Vec_(V)(i).
+      Definition dsum_vertices :=   \fbigoplus_(i : \V_Q)VIndex i.
 
       (* We want to define a path-algebra action on
-      the R-module dum_vertices, turning it into a
+      the R-module dsum_vertices, turning it into a
       (path-algebra)-module
       *)
+      Definition path_action_Lin (p : pathAlgBasis R Q)
+      :=  linConcat.map
+            (fdFreeLmodProj VIndex (Path.tail p))
+            (linConcat.map
+              (QuivRep.Path V p)
+              (fdFreeLmodInj VIndex (Path.head p))
+            ).
+      Definition path_action_fn (p : pathAlgBasis R Q)
+      := freeLmodMorphism.linear_to_matrix (path_action_Lin p).
+Check path_action_fn.
+
+Definition action_fn  (v : dsum_vertices) (p : pathAlgBasis R Q)
+ := path_action_Lin p v.
+ (*
+      Definition path_action (v : dsum_vertices)
+        := extendLinearlyRisky (action_fn v) (pathAlgType R Q) dsum_vertices.
       Definition path_action_fn (v : dsum_vertices)
-      (p : pathAlgBasis R Q) : dsum_vertices
-      := dsLmod.inj ((QuivRep.Path V p) (dsLmod.proj (Path.tail p) v)).
+      (p : pathAlgType R Q) : dsum_vertices
+      := extendLinearlyRisky (pathAlgType R Q) dsum_vertices.
+      dsLmod.inj ((QuivRep.Path V p) (dsLmod.proj (Path.tail p) v)).
       Lemma path_action_lin (v : dsum_vertices) : linear (path_action_fn v).
   (*     := [(Path.head p) --> inj](
             \PathMap_(V)(p)
               [proj --> (Path.tail p)](v)
           ).*)
-
-      Definition newScale (r : pathAlgType R Q) (v : dsum_vertices)
-      := @extendLinearlyRisky R (pathAlgType R Q) dsum_vertices
-      (fun p =>
-        (r p) * (freeLmodMorphism.linear_to_matrix (path_action v))
-      ).
-
-      Lemma newScale_comp (a b : pathAlgType R Q) (v : dsum_vertices) : newScale a (newScale b v) = newScale (a * b) v.
+*)
+      Definition scale (r : R \LC^(pathType Q)) (v : dsum_vertices)
+      := (*Takes each basis element of v in V_tp
+        to the corresponding sum of basis elements in V_hp and scales by r(p) *)
+        extendLinearlyRisky1 (fun (br : (pathAlgBasis R Q)) => path_action_Lin br v) r.
+        Check scale.
+      Lemma scale_comp (a b : pathAlgType R Q) (v : dsum_vertices) : scale a (scale b v) = scale (a * b) v.
       Proof.
-        rewrite /newScale=>/=.
-        rewrite /infBasis.MakeExtension.
+        rewrite /scale=>/=.
+        rewrite (linExtend.extendLinearlyR1Eq2)=>p/=.
+        rewrite (extendLinearlyRisky1K).
+        rewrite (@extendLinearlyRiskyK R (pathAlgType R Q) (dsum_vertices)
+          (pathAlgBasis R Q) (basis dsum_vertices) (path_action_fn)).
         rewrite {1 2}/path_action=>/=.
         destruct(typeIsInfSpanning (PAlgBasis.basis R Q) a) as [La Ha]eqn:A.
         destruct(typeIsInfSpanning (PAlgBasis.basis R Q) b) as [Lb Hb]eqn:B.
@@ -62,12 +81,12 @@ Module QuivRepFunc.
 
       Lemma newScale_left_id : left_id 1 newScale.
       Proof.      rewrite /newScale=>v/=.
-      rewrite /infBasis.MakeExtension.
-      destruct(typeIsInfSpanning (PAlgBasis.basis R Q) 1) as [L H]eqn:One.
-      rewrite One.
-      rewrite /path_action.
-      rewrite /PAlgBasis.pathApply=>/=.
-      rewrite PAlgBasis.OneIsFiniteSum.
+        rewrite /infBasis.MakeExtension.
+        destruct(typeIsInfSpanning (PAlgBasis.basis R Q) 1) as [L H]eqn:One.
+        rewrite One.
+        rewrite /path_action.
+        rewrite /PAlgBasis.pathApply=>/=.
+        rewrite PAlgBasis.OneIsFiniteSum.
 
       (* GRing.raddf_sum *)
       Admitted.

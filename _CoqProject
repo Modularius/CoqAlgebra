@@ -21,9 +21,6 @@ theories/Algebra/Projective.v
 #theories/Algebra/Tensor.v
 #theories/Algebra/Hom.v
 
-theories/Examples/QuiverEG.v
-theories/Examples/AlgebraEG.v
-
 theories/PathAlgebra/PathAlgebraMul.v
 theories/PathAlgebra/PathAlgebra.v
 theories/PathAlgebra/PathAlgebraBasis.v
@@ -32,4 +29,7 @@ theories/Representations/QuiverRep.v
 theories/Representations/QuiverRepFunctors.v
 theories/Representations/StandardResolution.v
 
+
+theories/Examples/QuiverEG.v
+theories/Examples/AlgebraEG.v
 

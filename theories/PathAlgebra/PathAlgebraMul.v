@@ -16,9 +16,7 @@ Open Scope ring_scope.
   Section Def.
   Variables (R : ringType) (Q : finQuiverType).
 
-  Definition lmod := formalLC.type_lmodType R (pathType Q).
-
-  Definition Mul (f g : lmod)
+  Definition Mul (f g : R \LC^(pathType Q))
     := fun p : pathType Q
       => \sum_(i <- Path.BuildPairs p)
             (f i.1)*(g i.2).
@@ -37,7 +35,7 @@ Open Scope ring_scope.
             (x1 (PathPairs.path1 i))*(x2 (PathPairs.path2 i))
         end.
 *)
-  Definition One : lmod := fun p : pathType Q => match p with
+  Definition One : R \LC^(pathType Q) := fun p : pathType Q => match p with
     |\e__ => 1
     |_ => 0 end.
 
@@ -180,7 +178,7 @@ rewrite (eq_bigr (fun i => \big[+%R/0]_(i0 <- Path.BuildPairs (Q:=Q) i.1)
   Abort.
 *)
 
-  Definition PathMonoid := @Monoid.Law lmod One Mul MulA left_id1 right_id1.
+  Definition PathMonoid := @Monoid.Law (R \LC^(pathType Q)) One Mul MulA left_id1 right_id1.
 End Def.
 
 End PAMul.

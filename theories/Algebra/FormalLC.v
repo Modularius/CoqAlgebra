@@ -189,11 +189,12 @@ Module formalLC.
   End FreeSubmod.
   *)
   Module Exports.
-    Notation formalLCType := type.
+    Notation formalLCType := type_lmodType.
     (*Notation formalLCFreeLmodType := freeModType.*)
   End Exports.
 End formalLC.
 Export formalLC.Exports.
+Notation "R \LC^ B" := (formalLCType R B) (at level 30).
 (*
 Module formalLC_funSupp.
   Module finSuppFun.
