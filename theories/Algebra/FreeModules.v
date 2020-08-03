@@ -3,7 +3,7 @@
 Require Import Coq.Program.Tactics.
 Require Import Coq.Logic.FunctionalExtensionality.
 From mathcomp Require Import ssreflect ssrfun seq.
-From mathcomp Require Import eqtype choice fintype path bigop.
+From mathcomp Require Import eqtype choice fintype path bigop finfun.
 
 Set Warnings "-parsing". (* Some weird bug in ssrbool throws out parsing warnings*)
   From mathcomp Require Import ssrbool ssrnat.
@@ -108,11 +108,18 @@ Module fdFreeLmodNull.
     Qed.
 
     Lemma fn_zero_lin : GRing.linear_for *%R (fun _ : (lmodZero.type R) => 0 : R).
-    Proof. by move => r x y; rewrite GRing.mulr0 GRing.addr0. Qed. 
+    Proof. by move => r x y; rewrite GRing.mulr0 GRing.addr0. Qed.
 
-    Lemma null_sp : spanning (lmodBasisSet.Build (fun _ : null_set => Linear fn_zero_lin)).
+    Lemma null_span : lmodBasisSet.spanP (B:=null_set) (fun _ : null_set => Linear fn_zero_lin).
+    Proof. rewrite/lmodBasisSet.spanP=>m1 m2.
+    by apply (iffP idP)=>H//=. Qed.
+
+
+    Definition null_basis_set := lmodBasisSet.Build null_span.
+
+    Lemma null_sp : spanning null_basis_set.
     Proof. move =>m; refine(exist _ (lmodFinSet.BuildSelfSubSet null_set) _).
-      rewrite (eq_bigr (fun _ => 0)).
+      rewrite /lmodLocalFinGenSet.spanProp (eq_bigr (fun _ => 0)).
       by rewrite big_pred0; destruct m.
       by move=> i _; case i.
     Qed.
@@ -224,7 +231,7 @@ Module fdFreeLmodPair.
     Proof. move=> m.
       destruct (typeIsSpanning B1 m.1) as [F1 H1], (typeIsSpanning B2 m.2) as [F2 H2].
       refine (exist _ (pair_subset F1 F2) _).
-      rewrite big_sumType=>/=.
+      rewrite /lmodLocalFinGenSet.spanProp big_sumType=>/=.
       rewrite (eq_bigr (fun i => (lmodBasisProj B1 (lmodFinSubSetIncl i) m.1 *: B1 (lmodFinSubSetIncl i), 0)))=>[|i _]/=.
       rewrite (eq_bigr (fun i => (0, lmodBasisProj B2 (lmodFinSubSetIncl i) m.2 *: B2 (lmodFinSubSetIncl i))))=>[|i _]/=.
       by rewrite pair_zero.
@@ -234,8 +241,12 @@ Module fdFreeLmodPair.
 
     Definition Basis : lmodFinBasisType (pair_lmodType M1 M2) := lmodFinBasis.Build pair_li pair_sp.
   End Def.
+
 End fdFreeLmodPair.
 Definition pair_fdFreeLmod (R : ringType) (m1 m2 : fdFreeLmodType R) := fdFreeLmodPack (fdFreeLmodPair.Basis (basis m1) (basis m2)).
+
+  
+
 
 Module fdFreeLmodSeq.
   Section Def.
@@ -307,12 +318,25 @@ Notation pairBasis := fdFreeLmodPair.Basis.
 
 Module freeLmodMorphism.
   Section Def.
-    Variable (R : ringType) (M1 M2 : fdFreeLmodType R) (f : {linear M1 -> M2}).
-    Definition linear_to_matrix : (basis M1) -> (basis M2) -> R
-      := fun b1 b2 => lmodBasisProj (basis M2) b2 (f ((basis M1) b1)).
+    Variable (R : ringType).
+    Section fd.
+      Variable (M1 M2 : fdFreeLmodType R) (f : {linear M1 -> M2}).
+      Definition fd_linear_to_matrix : lmodFinMatrixType (basis M1) (basis M2)
+        := [ffun b1b2 => lmodBasisProj (basis M2) b1b2.2 (f ((basis M1) b1b2.1))].
+    End fd.
+    Variable (M1 M2 : freeLmodType R) (f : {linear M1 -> M2}).
+    Definition linear_to_matrix : lmodMatrixType (freeLmod.basis M1) (freeLmod.basis M2)
+      := fun b1b2 => lmodBasisProj (freeLmod.basis M2) b1b2.2 (f ((freeLmod.basis M1) b1b2.1)).
   End Def.
 End freeLmodMorphism.
+Notation fdFreeLmod_linear_to_matrix := freeLmodMorphism.fd_linear_to_matrix.
 Notation freeLmod_linear_to_matrix := freeLmodMorphism.linear_to_matrix.
+Lemma linear_eq_matrix (R : ringType) (M1 M2 : freeLmodType R) (f : {linear M1 -> M2})
+ : f = extendLinearlyRisky (freeLmod_linear_to_matrix f).
+ Proof.
+   assert (@eq (M1 -> M2) f (extendLinearlyRisky (freeLmod_linear_to_matrix f))).
+ apply functional_extensionality=>m.
+ Admitted.
 
 
 Close Scope ring_scope.

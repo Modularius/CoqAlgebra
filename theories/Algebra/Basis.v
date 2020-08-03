@@ -1,6 +1,8 @@
+
 Require Import Coq.Program.Tactics.
+From Coq.Logic Require Import FunctionalExtensionality.
 From mathcomp Require Import ssreflect ssrfun eqtype fintype seq bigop.
-Require Import Coq.Lists.Streams.
+
 Require Import Algebras.
 
 Set Warnings "-parsing". (* Some weird bug in ssrbool throws out parsing warnings*)
@@ -140,13 +142,16 @@ Module lmodLISet.
 End lmodLISet.
 Export lmodLISet.Exports.
 
-Module lmodBasisSet.
+Module lmodSpanningSet.
   Section Def.
     Variable (R : ringType) (M : lmodType R).
 
+    Definition spanP (B : lmodSetType M) (proj : B -> {scalar M})
+     := forall m1 m2 : M, reflect (forall b : B, proj b m1 = proj b m2) (m1 == m2).
+
     Record mixin (B : lmodSetType M) := Mixin {
       proj : B -> {scalar M};
-      (* _ : forall b : B, proj b (B b) == 1; *)
+      span : spanP proj;
     }.
 
     Record class (B : lmodSetType M)
@@ -157,11 +162,12 @@ Module lmodBasisSet.
     Definition Build {T : finType} (elem : T -> M)
       (I : injective elem) (ND : non_degenerate elem)
       (proj : (lmodSet.Build I ND) -> {scalar M})
-      := Pack (Class (Mixin proj)).
+      (span : spanP proj)
+      := Pack (Class (Mixin span)).
   End Def.
 
   Module Exports.
-    Notation lmodBasisSetType := type.
+    Notation lmodSpanningSetType := type.
     Notation lmodBasisProj := proj.
     Coercion sort : type >-> lmodSetType.
     Coercion mixin_of : class >-> mixin.
@@ -169,22 +175,54 @@ Module lmodBasisSet.
   End Exports.
   Export Exports.
 
-  Section Results.
+End lmodSpanningSet.
+Export lmodSpanningSet.Exports.
+
+Module lmodBasis.
+  Section Def.
     Variable (R : ringType) (M : lmodType R).
-    (*Lemma typeIsSelfUnit (B : type M) : forall b : B, proj B b (B b) == 1.
-    Proof. by destruct (mixin_of (class_of B))=>/=. Qed.*)
-  End Results.
-End lmodBasisSet.
-Export lmodBasisSet.Exports.
 
+    Record class (T : lmodSet.type M) := Class {
+      li_mixin_of : lmodLISet.mixin T;
+      gen_mixin_of : lmodSpanningSet.mixin T;
+    }.
 
+    Record type := Pack { sort : _; class_of : class sort; }.
+
+    Definition Build {T : finType} (elem : T -> M)
+      (I : injective elem) (ND : non_degenerate elem)
+      (proj : (lmodSet.Build I ND) -> {scalar M})
+      (Sp : lmodSpanningSet.spanP proj)
+      (LI : li (lmodSet.Build I ND))
+    := Pack (Class (lmodLISet.Mixin LI) (lmodSpanningSet.Mixin Sp)).
+
+    Definition to_LI (T : type)
+    := lmodLISet.Pack (lmodLISet.Class (li_mixin_of (class_of T))).
+    Definition to_Spantype (T : type)
+    := lmodSpanningSet.Pack (lmodSpanningSet.Class (gen_mixin_of (class_of T))).
+  End Def.
+
+  Module Exports.
+    Notation lmodBasisType := type.
+    Coercion to_LI : type >-> lmodLISet.type.
+    Coercion to_Spantype : type >-> lmodSpanningSetType.
+    Coercion class_of : type >-> class.
+    Coercion sort : type >-> lmodSetType.
+  End Exports.
+End lmodBasis.
+Export lmodBasis.Exports.
+
+(*
 Module lmodLocalFinGenSet.
   Section Def.
     Variable (R : ringType) (M : lmodType R).
 
+    Definition spanProp (B : lmodBasisSetType M) (F : lmodFinSubSetType B) (m : M)
+     := (\sum_(b : F) (lmodBasisProj B (lmodFinSubSetIncl b)) m *: B (lmodFinSubSetIncl b)) == m.
+    Definition spanType (B : lmodBasisSetType M) (m : M)
+     := {F : lmodFinSubSetType B | spanProp F m}.
     Definition spanning (B : lmodBasisSetType M) :=
-      forall m : M, {F : lmodFinSubSetType B |
-        (\sum_(b : F) (lmodBasisProj B (lmodFinSubSetIncl b)) m *: B (lmodFinSubSetIncl b)) == m}.
+      forall m : M, spanType B m.
 
     Record mixin (T : lmodBasisSetType M) := Mixin {_ : spanning T; }.
 
@@ -240,7 +278,7 @@ Module lmodLocalFinGenSet.
 
 End lmodLocalFinGenSet.
 Export lmodLocalFinGenSet.Exports.
-
+*)
 Module lmodFinSet.
   Section Def.
     Variable (R : ringType) (M : lmodType R).
@@ -272,14 +310,8 @@ Module lmodFinBasis.
   Section Def.
     Variable (R : ringType) (M : lmodType R).
 
-    Record mixin (T : lmodBasisSetType M) := Mixin {
-      F : finType;
-      _ := spanning T;
-    }.
-
     Record class (T : lmodFinSet.type M) := Class {
-      base : lmodBasisSet.class (lmodFinSet.to_set T);
-      li_mixin_of : lmodLISet.mixin (lmodFinSet.to_set T);
+      li_mixin_of : lmodLISet.mixin T;
       gen_mixin_of : lmodLocalFinGenSet.mixin (lmodBasisSet.Pack base);
     }.
 
@@ -288,7 +320,8 @@ Module lmodFinBasis.
     Definition Build {T : finType} (elem : T -> M)
       (I : injective elem) (ND : non_degenerate elem)
       (proj : (lmodFinSet.Build I ND) -> {scalar M})
-      (LI : li (lmodFinSet.to_set (lmodFinSet.Build I ND))) (Sp : spanning (lmodBasisSet.Build proj))
+      (span : lmodBasisSet.spanP proj)
+      (LI : li (lmodFinSet.to_set (lmodFinSet.Build I ND))) (Sp : spanning (lmodBasisSet.Build span))
     := Pack (Class (lmodLISet.Mixin LI) (lmodLocalFinGenSet.Mixin Sp)).
 
     Definition to_BasisSet (T : type)
@@ -308,6 +341,7 @@ Module lmodFinBasis.
     Coercion to_LI : type >-> lmodLISet.type.
     Coercion to_Gentype : type >-> lmodLocalFinGenSet.type.
     Coercion class_of : type >-> class.
+    Coercion sort : type >-> lmodFinSetType.
   End Exports.
 End lmodFinBasis.
 Export lmodFinBasis.Exports.
@@ -318,14 +352,125 @@ Proof. rewrite/li/lmodLISet.li_of
   =>/=H F c H2 b.
 Admitted.
 
+Lemma fin_span (R : ringType) (M : lmodType R) (B : lmodFinBasisType M)
+ : forall m : M, @lmodLocalFinGenSet.spanProp _ _ B (lmodFinSet.BuildSelfSubSet B) m.
+Proof. rewrite/lmodLocalFinGenSet.spanProp=>m.
+rewrite/lmodFinSet.BuildSelfSubSet/lmodFinSubSetIncl.
+destruct (typeIsSpanning B m) as [F S].
+rewrite/lmodLocalFinGenSet.spanProp in S.
+Admitted.
+
+From mathcomp Require Import finfun matrix.
+
+Module lmodMatrix.
+  Section Def.
+  Variable (R : ringType) (M1 : lmodType R) (M2 : lmodType R)
+    (B1 : lmodBasisSetType M1) (B2 : lmodBasisSetType M2).
+
+    Definition type := (B1 * B2)%type -> R.
+  End Def.
+  Module Exports.
+    Notation lmodMatrixType := type.
+  End Exports.
+End lmodMatrix.
+Export lmodMatrix.Exports.
+
+Module lmodFinMatrix.
+  Section Def.
+  Variable (R : ringType) (M1 : lmodType R) (M2 : lmodType R)
+    (B1 : lmodFinBasisType M1) (B2 : lmodFinBasisType M2).
+
+    Definition type := {ffun (B1 * B2)%type -> R}.
+
+    Definition to_ssrmatrix (A : type)
+      : 'M[R]_(basis_number B1, basis_number B2)
+     := \matrix[tt]_(i,j) (A (@enum_val (lmodFinSet.sort (lmodFinBasis.sort B1)) _ i,@enum_val (lmodFinSet.sort (lmodFinBasis.sort B2)) _ j)).
+
+    Definition from_ssrmatrix (A : 'M[R]_(basis_number B1, basis_number B2))
+      : type
+     := [ffun ij => A (@enum_rank (lmodFinSet.sort (lmodFinBasis.sort B1)) ij.1) (@enum_rank (lmodFinSet.sort (lmodFinBasis.sort B2)) ij.2)].
+
+    Definition to_arb (A : type) : lmodMatrixType B1 B2 := A.
+  End Def.
+  Module Exports.
+    Notation lmodFinMatrixType := type.
+    Coercion to_arb : type >-> lmodMatrixType.
+  End Exports.
+End lmodFinMatrix.
+Export lmodFinMatrix.Exports.
 
 Module linExtend.
-  Section Def.
-    Variable (R : ringType) (M1 : lmodType R) (M2 : lmodType R).
-      Section Risky.
-      Variable (B1 : lmodBasisSetType M1) (B2 : lmodBasisSetType M2).
+  Section FiniteDimensional.
+    Variable (R : ringType) (M1 : lmodType R) (M2 : lmodType R)
+      (B1 : lmodFinBasisType M1) (B2 : lmodFinBasisType M2).
+    Section Def.
+      Variable (A : lmodFinMatrixType B1 B2).
 
-      Axiom extendLinearlyR : (B1 -> B2 -> R) -> {linear M1 -> M2}.
+      Definition fn := fun m =>
+        \sum_(b1 : B1)
+          \sum_(b2 : B2)
+              ((lmodBasisProj B1 b1 m) * A(b1,b2)) *: B2 b2.
+
+      Lemma lin : linear fn.
+      Proof. rewrite/fn=>r x y.
+        rewrite GRing.scaler_sumr -big_split=>/=.
+        assert(H1 : forall b1, true ->
+          \sum_(b2 : B2)
+            lmodBasisProj B1 b1 (r *: x + y) * A(b1,b2) *: B2 b2
+          = (r *: \sum_(b2 : B2)
+            ((lmodBasisProj B1 b1 x) * A(b1,b2)) *: B2 b2) +
+                \sum_(b2 : B2)
+            ((lmodBasisProj B1 b1 y) * A(b1,b2)) *: B2 b2
+            ).
+        move=> b1 _.
+        rewrite GRing.scaler_sumr -big_split=>/=.
+        assert(H2 : forall b2, true ->
+          lmodBasisProj B1 b1 (r *: x + y) * A(b1,b2) *: B2 b2
+          = (r *: (lmodBasisProj B1 b1 x * A(b1,b2) *: B2 b2)) +
+              lmodBasisProj B1 b1 y * A(b1,b2) *: B2 b2).
+        by move=> b2 _; rewrite GRing.linearP GRing.mulrDl GRing.scalerDl !GRing.scalerA GRing.mulrA.
+        by rewrite (eq_bigr _ H2).
+        by rewrite (eq_bigr _ H1).
+      Qed.
+      Definition fdFun := Linear lin.
+    End Def.
+
+    Section Results.
+      Variable (A : lmodFinMatrixType B1 B2).
+
+      Lemma one_zero : forall (b1 b2 : B1), lmodBasisProj B1 b1 (B1 b2) = if b1 == b2 then 1%R else 0%R.
+      Proof. move=>b1 b2.
+      case (b1 == b2) as []eqn:E.
+      apply (rwP eqP) in E.
+      destruct E.
+      Admitted.
+      
+
+      Lemma projToK :
+        forall (b1 : B1) (b2 : B2),
+          lmodBasisProj B2 b2 (fdFun A (B1 b1)) = A(b1,b2).
+      Proof. rewrite /fdFun=>b1 b2/=.
+      rewrite /fn. Admitted.
+    End Results.
+  End FiniteDimensional.
+
+  Section Risky.
+    Section Def.
+      Variable (R : ringType) (M1 : lmodType R) (M2 : lmodType R).
+        Variable (B1 : lmodBasisSetType M1) (B2 : lmodBasisSetType M2).
+
+      Axiom extendMatrixLinearlyR : (lmodMatrixType B1 B2) -> {linear M1 -> M2}.
+
+      Axiom extendLinearlyRK : forall (A : (lmodMatrixType B1 B2)) (b1 : B1) (b2 : B2),
+      lmodBasisProj B2 b2 (extendMatrixLinearlyR A (B1 b1)) = A(b1,b2).
+
+      Lemma extendLinearlyREq (A B : lmodMatrixType B1 B2)
+       : extendMatrixLinearlyR A = extendMatrixLinearlyR B <-> forall (b1 : B1) (b2 : B2), A(b1,b2) == B(b1,b2).
+      Proof. split=>[H b1 b2|H].
+      by rewrite -!extendLinearlyRK H.
+      assert(Q : @eq (M1 -> M2) (extendMatrixLinearlyR A) (extendMatrixLinearlyR B)).
+      apply functional_extensionality=>m.
+      Admitted.
 (*
       Axiom extendLinearlyRK :
         forall (f : B1 -> B2 -> R) (b : B1), (extendLinearlyR f (B1 b)) = B2 (f b).
@@ -341,77 +486,19 @@ Module linExtend.
       Axiom extendLinearlyR1Eq2 :
         forall (f g : B1 -> M2) (x y : M1),
         (extendLinearlyR1 f x = extendLinearlyR1 g y)
-         <-> forall (b : B1),
-         (lmodBasisProj B1 b x) *: (f b) = (lmodBasisProj B1 b y) *: (g b).
-    End Risky.
-
-    Section Safe.
-      Variable (B1 : lmodFinBasisType M1) (B2 : lmodFinBasisType M2)
-        (f : B1 -> B2 -> R).
-      
-      Definition extendLinearly_fn := fun m =>
-        \sum_(b1 : B1)
-          \sum_(b2 : B2)
-              ((lmodBasisProj B1 b1 m) * (f b1 b2)) *: B2 b2.
-      Lemma extendLinearly_lin : linear extendLinearly_fn.
-      Proof.
-        rewrite/extendLinearly_fn=>r x y.
-        rewrite GRing.scaler_sumr -big_split=>/=.
-        assert(H1 : forall b1, true ->
-          \sum_(b2 : B2)
-            lmodBasisProj B1 b1 (r *: x + y) * (f b1 b2) *: B2 b2
-          = (r *: \sum_(b2 : B2)
-            ((lmodBasisProj B1 b1 x) * (f b1 b2)) *: B2 b2) +
-                 \sum_(b2 : B2)
-            ((lmodBasisProj B1 b1 y) * (f b1 b2)) *: B2 b2
-            ).
-        move=> b1 _.
-        rewrite GRing.scaler_sumr -big_split=>/=.
-        assert(H2 : forall b2, true ->
-          lmodBasisProj B1 b1 (r *: x + y) * (f b1 b2) *: B2 b2
-          = (r *: (lmodBasisProj B1 b1 x * (f b1 b2) *: B2 b2)) +
-              lmodBasisProj B1 b1 y * (f b1 b2) *: B2 b2).
-        by move=> b2 _; rewrite GRing.linearP GRing.mulrDl GRing.scalerDl !GRing.scalerA GRing.mulrA.
-        by rewrite (eq_bigr _ H2).
-        by rewrite (eq_bigr _ H1).
-      Qed.
-      Definition extendLinearly := Linear extendLinearly_lin.
-      (*
-      Lemma extendLinearlyK :
-        forall (b1 : B1) (b2 : B2), (extendLinearly_fn (B1 b1)) = (f b1 b2) *: B2 b2.
-      Proof.
-        rewrite /extendLinearly_fn=>b1 b2.
-      Admitted.*)
-    End Safe.
-  End Def.
+        <-> forall (b : B1),
+        (lmodBasisProj B1 b x) *: (f b) = (lmodBasisProj B1 b y) *: (g b).
+    End Def.
+  End Risky.
   Module Exports.
-    Notation extendLinearly := extendLinearly.
-    (*Notation extendLinearlyK := extendLinearlyK.*)
+    Notation extendLinearly := fdFun.
+    Notation extendLinearlyK := projToK.
     Notation extendLinearlyRisky1 := extendLinearlyR1.
     Notation extendLinearlyRisky1K := extendLinearlyR1K.
-    Notation extendLinearlyRisky := extendLinearlyR.
+    Notation extendMatrixLinearlyRisky := extendMatrixLinearlyR.
     (*Notation extendLinearlyRiskyK := extendLinearlyRK.*)
   End Exports.
 End linExtend.
 Export linExtend.Exports.
 
 Close Scope ring_scope.
-
-(*
-Section ExtendLinearly.
-Local Coercion sort : type >-> lmodSet.type.
-Local Coercion class_of : type >-> class.
-
-Variable (R : ringType) (M N : lmodType R) (B : type M) (f : B -> N).
-Definition MakeExtension : M -> N := fun m : M =>
-  \sum_(b <- (sval ((typeIsInfSpanning (fin2Gentype B)) m)))
-    (infGenCoef (gen_mixin_of B) b m) *: (f b).
-
-Lemma MakeExtension_lin : linear MakeExtension.
-Notation extendInfLinearly := MakeExtensionLin.
-  rewrite/MakeExtension=>r x y.
-  rewrite GRing.scaler_sumr.
-Admitted.
-
-Definition MakeExtensionLin := Linear MakeExtension_lin.
-End ExtendLinearly.*)

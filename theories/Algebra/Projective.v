@@ -49,9 +49,33 @@ Module lmodProjPair.
   Section Def.
     Variable (R : ringType) (m1 m2 : projLmodType R).
 
+    Notation typ m1 m2 := (sum_finType (lmodFinSet.sort (proj_basis m1)) (lmodFinSet.sort (proj_basis m2))).
+    Definition pairBasis_set : lmodFinSetType
+    (lmodDSPairType (lmodDSPairType m1 m2)
+       (lmodDSPairType (proj_partner m1) (proj_partner m2))).
+    Proof. Admitted. (*
+      refine (@lmodFinSet.Build _ 
+        (lmodDSPairType
+          (lmodDSPairType m1 m2)
+          (lmodDSPairType (proj_partner m1) (proj_partner m2))
+        ) _
+      (fun bAB => match bAB with
+      |inl bA => match bA with
+        |inl A1 => ((A1,0%R),(0%R,0%R))
+        |inr A2 => ((_,_),(_,_))
+        end
+      |inr bB => match bB with
+        |inl B1 => ((_,_),(_,_))
+        |inr B2 => ((_,_),(_,_))
+        end
+      end)
+       _ _).*)
+
     Definition pairBasis : lmodFinBasisType
     (lmodDSPairType (lmodDSPairType m1 m2)
        (lmodDSPairType (proj_partner m1) (proj_partner m2))).
+
+       refine (lmodFinBasis.Build _ _).
        destruct m1, m2=>/=.
        rewrite/lmodDSPairType=>/=.
     Admitted.

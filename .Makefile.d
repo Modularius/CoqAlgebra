@@ -25,9 +25,9 @@ theories/Algebra/Morphism.vos theories/Algebra/Morphism.vok theories/Algebra/Mor
 theories/Algebra/Algebras.vo theories/Algebra/Algebras.glob theories/Algebra/Algebras.v.beautified theories/Algebra/Algebras.required_vo: theories/Algebra/Algebras.v theories/Algebra/Submodule.vo
 theories/Algebra/Algebras.vio: theories/Algebra/Algebras.v theories/Algebra/Submodule.vio
 theories/Algebra/Algebras.vos theories/Algebra/Algebras.vok theories/Algebra/Algebras.required_vos: theories/Algebra/Algebras.v theories/Algebra/Submodule.vos
-theories/Algebra/DirectSum.vo theories/Algebra/DirectSum.glob theories/Algebra/DirectSum.v.beautified theories/Algebra/DirectSum.required_vo: theories/Algebra/DirectSum.v theories/Algebra/Algebras.vo theories/Algebra/Submodule.vo theories/Algebra/Classes.vo
-theories/Algebra/DirectSum.vio: theories/Algebra/DirectSum.v theories/Algebra/Algebras.vio theories/Algebra/Submodule.vio theories/Algebra/Classes.vio
-theories/Algebra/DirectSum.vos theories/Algebra/DirectSum.vok theories/Algebra/DirectSum.required_vos: theories/Algebra/DirectSum.v theories/Algebra/Algebras.vos theories/Algebra/Submodule.vos theories/Algebra/Classes.vos
+theories/Algebra/DirectSum.vo theories/Algebra/DirectSum.glob theories/Algebra/DirectSum.v.beautified theories/Algebra/DirectSum.required_vo: theories/Algebra/DirectSum.v theories/Algebra/Algebras.vo theories/Algebra/Submodule.vo theories/Algebra/Classes.vo theories/Algebra/Morphism.vo
+theories/Algebra/DirectSum.vio: theories/Algebra/DirectSum.v theories/Algebra/Algebras.vio theories/Algebra/Submodule.vio theories/Algebra/Classes.vio theories/Algebra/Morphism.vio
+theories/Algebra/DirectSum.vos theories/Algebra/DirectSum.vok theories/Algebra/DirectSum.required_vos: theories/Algebra/DirectSum.v theories/Algebra/Algebras.vos theories/Algebra/Submodule.vos theories/Algebra/Classes.vos theories/Algebra/Morphism.vos
 theories/Algebra/Basis.vo theories/Algebra/Basis.glob theories/Algebra/Basis.v.beautified theories/Algebra/Basis.required_vo: theories/Algebra/Basis.v theories/Algebra/Algebras.vo
 theories/Algebra/Basis.vio: theories/Algebra/Basis.v theories/Algebra/Algebras.vio
 theories/Algebra/Basis.vos theories/Algebra/Basis.vok theories/Algebra/Basis.required_vos: theories/Algebra/Basis.v theories/Algebra/Algebras.vos

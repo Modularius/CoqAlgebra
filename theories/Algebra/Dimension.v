@@ -36,7 +36,7 @@ Module ringCartProd.
       Lemma unit_spanning : spanning (lmodBasisSet.Build (fun _ : unit_bset => linID.map (lmods.ringMod R))).
       Proof. move=>/=x.
         refine (exist _ (lmodFinSet.BuildSelfSubSet unit_bset) _).
-        rewrite -big_enum enumT=>//=.
+        rewrite /lmodLocalFinGenSet.spanProp -big_enum enumT=>//=.
       Admitted.
 
       Definition unitBasis : lmodFinBasisType (lmods.ringMod R) := lmodFinBasis.Build unit_li unit_spanning.
@@ -46,44 +46,6 @@ Module ringCartProd.
     Definition fn := fun j : 'I_n => lmods.ringMod R : lmodType R.
 
     Definition type := \fbigoplus_(j : 'I_n) freeRingMod.
-
-(*
-    Definition basis_fn := fun i => lmodDS.idx.injLin fn i (GRing.one R).
-
-    Lemma basis_inj : injective basis_fn. Proof.
-    rewrite /basis_fn=>x y H.
-    destruct x as [x Hx], y as [y Hy].
-    case(x == y) as []eqn:E.
-    apply (rwP eqP) in E. destruct E.
-    by rewrite (proof_irrelevance _ Hx Hy).
-    by apply (lmodDS.idx.inj_index_injective) in H.
-    Qed.
-
-    Lemma basis_nondeg : non_degenerate basis_fn. Proof.
-    move=>x.
-    assert(A := GRing.linear0 (@lmodDS.idx.injLin R (ordinal_finType n) fn x)).
-    rewrite -A.
-    apply (rwP negP); rewrite /not=>H.
-    apply (rwP eqP) in H.
-    apply (@lmodDS.idx.inj_injective R _ fn x) in H.
-    apply (rwP eqP) in H.
-    by rewrite (GRing.oner_eq0) in H.
-    Qed.
-
-    Lemma basis_li : li (lmodFinSet.Build basis_inj basis_nondeg).
-    Proof. move=>/= c H b.
-    case(c b == 0) as []eqn:E=>//.
-    destruct b.
-    Admitted.
-
-    Lemma basis_spanning : spanning (lmodFinSet.Build basis_inj basis_nondeg).
-    Proof. move=>m. Admitted.
-
-
-    Program Definition basis : finBasisType type
-     := lmodFinBasis.Build basis_li basis_spanning.
-
-    Program Definition ofRing := fdFreeLmod.Pack (fdFreeLmod.Mixin basis). *)
   End Def.
 
   Module Exports.
@@ -110,9 +72,8 @@ Module ringIBN.
     unfold ringCartProd.type in f.
     Admitted.
 
-    Axiom cRingToRingIBNMixin : forall (R : comRingType), mixin R.
     Definition cRingToRingIBN (R : comRingType) : type
-     := Pack (cRingToRingIBNMixin R).
+     := Pack (Mixin (@cRingIBN R)).
   End Def.
 
   Module Exports.
@@ -134,20 +95,22 @@ Module fdFreeLmodDimension.
   Section Theory.
     Variable (R : ringIBNType).
     Open Scope nat_scope.
-    Axiom steinitz_exchange : forall {M : lmodType R}
-      (B1 B2 : lmodFinBasisType M),
+    Lemma steinitz_exchange {M : lmodType R}
+      (B1 B2 : lmodFinBasisType M) :
       (basis_number B1 <= basis_number B2).
-    (*Proof. move=> H1 H2.
-    rewrite !cardE.
-    rewrite /(enum B1).
-    rewrite /(enum B2).
-    destruct(Finite.enum B1) as []eqn:E=>//.
-    destruct(Finite.enum B2) as []eqn:E2=>//.
-    destruct H1 as [H1 H1'].
-    rewrite /fin_spanning in H2.
-    Search "enum".
-    Set Printing All.
-    *)
+    Proof.
+    rewrite /basis_number !cardE.
+    rewrite /(enum (to_FinType (lmodFinBasis.sort B1))).
+    rewrite /(enum (to_FinType (lmodFinBasis.sort B2))).
+    destruct(Finite.enum (to_FinType (lmodFinBasis.sort B1))) as []eqn:E=>//=.
+    destruct(Finite.enum (to_FinType (lmodFinBasis.sort B2))) as []eqn:E2=>//=.
+    assert (A := fin_span B2 (B1 s)); move: A;
+    rewrite /lmodLocalFinGenSet.spanProp
+      /lmodFinSet.BuildSelfSubSet/lmodFinSubSetIncl
+      -big_enum enumT E2 big_nil -(rwP eqP)=>A.
+    assert (D:= @typeIsNonDegenerate _ _ B1 s);
+    by move: D; rewrite A eq_refl-(rwP eqP) =>D.
+    Admitted.
     Theorem invariant_dimension {M : lmodType R}
       (B1 B2 : lmodFinBasisType M) : basis_number B1 == basis_number B2.
     Proof.

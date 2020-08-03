@@ -40,34 +40,30 @@ Module QuivRepFunc.
               (QuivRep.Path V p)
               (fdFreeLmodInj VIndex (Path.head p))
             ).
-      Definition path_action_fn (p : pathAlgBasis R Q)
-      := freeLmodMorphism.linear_to_matrix (path_action_Lin p).
-Check path_action_fn.
+      Definition action (v1 : dsum_vertices) : lmodMatrixType (pathAlgBasis R Q) (basis dsum_vertices)
+       := fun b_pv => let (b_p,b_v2) := b_pv in
+       lmodBasisProj (basis dsum_vertices) b_v2 (path_action_Lin b_p v1).
 
-Definition action_fn  (v : dsum_vertices) (p : pathAlgBasis R Q)
- := path_action_Lin p v.
- (*
-      Definition path_action (v : dsum_vertices)
-        := extendLinearlyRisky (action_fn v) (pathAlgType R Q) dsum_vertices.
-      Definition path_action_fn (v : dsum_vertices)
-      (p : pathAlgType R Q) : dsum_vertices
-      := extendLinearlyRisky (pathAlgType R Q) dsum_vertices.
-      dsLmod.inj ((QuivRep.Path V p) (dsLmod.proj (Path.tail p) v)).
-      Lemma path_action_lin (v : dsum_vertices) : linear (path_action_fn v).
-  (*     := [(Path.head p) --> inj](
-            \PathMap_(V)(p)
-              [proj --> (Path.tail p)](v)
-          ).*)
-*)
-      Definition scale (r : R \LC^(pathType Q)) (v : dsum_vertices)
-      := (*Takes each basis element of v in V_tp
+      Definition scale (r : pathAlgType R Q) (v : dsum_vertices)
+      := linExtend.extendLinearlyR (action v) r.
+       (*Takes each basis element of v in V_tp
         to the corresponding sum of basis elements in V_hp and scales by r(p) *)
-        extendLinearlyRisky1 (fun (br : (pathAlgBasis R Q)) => path_action_Lin br v) r.
-        Check scale.
+        
       Lemma scale_comp (a b : pathAlgType R Q) (v : dsum_vertices) : scale a (scale b v) = scale (a * b) v.
       Proof.
         rewrite /scale=>/=.
-        rewrite (linExtend.extendLinearlyR1Eq2)=>p/=.
+        rewrite {1}/action.
+
+        fun b_pv : PAlgBasis.pathAlgBasisSet R Q * basis dsum_vertices =>
+        let (b_p, b_v2) := b_pv in
+        lmodBasisProj (basis dsum_vertices) b_v2
+          (fdFreeLmodFin.inj (f:= Path.head b_p)
+            (\PathMap_(V)(b_p)
+              (fdFreeLmodFin.proj (f:= Path.tail b_p)
+                (extendLinearlyRisky (action v) b)))))
+
+
+        rewrite (linExtend.extendLinearlyREq)=>p/=.
         rewrite (extendLinearlyRisky1K).
         rewrite (@extendLinearlyRiskyK R (pathAlgType R Q) (dsum_vertices)
           (pathAlgBasis R Q) (basis dsum_vertices) (path_action_fn)).

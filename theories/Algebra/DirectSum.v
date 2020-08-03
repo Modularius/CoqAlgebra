@@ -12,7 +12,7 @@ Set Warnings "-ambiguous-paths". (* Some weird bug in ssralg throws out coercion
     From mathcomp Require Import ssralg.
 Set Warnings "ambiguous-paths".
 
-Require Import Algebras Submodule Classes.
+Require Import Algebras Submodule Classes Morphism.
 Open Scope ring_scope.
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -509,99 +509,11 @@ Notation "\bigoplus F" := (dsLmod.DS F).
 Notation "\bigoplus_ ( i : t ) F" := (dsLmod.DS (fun i : t => F i)).
 Notation "\bigoplus_ ( i 'in' A ) F" := (seq_dsLmod.DS (filter F (fun i => i \in A))).
 
-
-  (*
-
-    Module Exports.
-    
-      Notation "\bigoplus_ ( a : t | P ) F " := (dsType.DS (fun a => F)) (at level 41, F at level 41, a at level 41).
-
-      Notation "[ f --> inj]( x )" := (inj _ f x) (at level 0).
-      Notation "[proj --> f ]( x )" := (proj _ f x) (at level 0).
-    End Exports.
-  End idx.
-  Export idx.Exports.
-
-  Module inf.
-    Open Scope ring_scope.
-    Section Def.
-    Variable (R : ringType) (T : eqType) (I : T -> (lmodType R)).
-    Record DS := InfType {
-      FinSubType : finType;
-      FinSubFun : FinSubType -> T;
-      elem : GRing.Lmodule.sort (List.DS (map (I \o FinSubFun) (enum FinSubType)));
-    }.
-    Definition Add (x y : DS) : DS.
-  destruct x, y.
-  case(
-  := \sum_(ex : elem x)\sum_(ey : elem y) ex 
-    Definition DS_zmodMixin := ZmodMixin 4.
-  *)
-
-
-Module linExt.
-  Section Def.
-    Variable (R : ringType) (F1 F2 : finType).
-    Variable (I1 : F1 -> (lmodType R)) (I2 : F2 -> (lmodType R))
-    (fn : forall (f1 : F1) (f2 : F2), {linear (I1 f1) -> (I2 f2)} ).
-    Definition ExtendLinearly  (x : \bigoplus I1) : \bigoplus I2 :=
-      \sum_(f2 : F2)
-        \sum_(f1 : F1)
-          @dsLmod.inj _ _ I2 f2
-            (fn f1 f2
-              (@dsLmod.proj _ _ I1 f1 x)
-            ).
-
-    Lemma ExtendLinearly_lin : linear ExtendLinearly.
-    Proof. rewrite /ExtendLinearly =>r x y.
-      rewrite GRing.scaler_sumr -big_split=>/=.
-      refine (eq_bigr _ _) => f2 _.
-      rewrite GRing.scaler_sumr -big_split=>/=.
-      refine (eq_bigr _ _) => f1 _.
-      by rewrite -!GRing.linearPZ=>/=.
-    Qed.
-    Definition ExtendLinearlyLin : {linear (\bigoplus_f I1) -> (\bigoplus_f I2)}
-        := Linear ExtendLinearly_lin.
-  End Def.
-
-  Section FromDef.
-    Variable (R : ringType) (F : finType)
-      (I : F -> (lmodType R)) (V : lmodType R)
-      (fn : forall (f : F), {linear (I f) -> V}).
-    Definition ExtendLinearlyFrom (x : \bigoplus I) : V
-      := \sum_(f : F)
-            fn f (@dsLmod.proj _ _ I f x).
-
-    Lemma ExtendLinearlyFrom_lin : linear ExtendLinearlyFrom.
-    Proof. rewrite /ExtendLinearlyFrom=>r x y.
-      rewrite GRing.scaler_sumr-big_split=>/=.
-      refine (eq_bigr _ _) => f2 _.
-      by rewrite -!GRing.linearPZ=>/=.
-    Qed.
-
-    Definition ExtendLinearlyFromLin : {linear (\bigoplus I) -> V}
-        := Linear ExtendLinearlyFrom_lin.
-  End FromDef.
-
-  Section ToDef.
-    Variable (R : ringType) (F : finType) (I : F -> (lmodType R))
-      (U : lmodType R) (fn : forall (f : F), {linear U -> (I f)}).
-    Definition ExtendLinearlyTo (x : U) : \bigoplus I :=
-      \sum_(f : F)
-          @dsLmod.inj _ _ I f (fn f x).
-
-    Lemma ExtendLinearlyTo_lin : linear ExtendLinearlyTo.
-    Proof. rewrite /ExtendLinearlyTo=>r x y.
-      rewrite GRing.scaler_sumr-big_split=>/=.
-      refine (eq_bigr _ _) => f _.
-      by rewrite -!GRing.linearPZ=>/=.
-    Qed.
-
-    Definition ExtendLinearlyToLin : {linear U -> \bigoplus I}
-      := Linear ExtendLinearlyTo_lin.  
-  End ToDef.
-End linExt.
-
-Canonical linExt.ExtendLinearlyLin.
-Canonical linExt.ExtendLinearlyFromLin.
-Canonical linExt.ExtendLinearlyToLin.
+Theorem DS_cat_theory (R : ringType) (F : finType)
+  (I : F -> (lmodType R))
+    : forall (f : forall i : F, {linear \bigoplus I -> (I i)}), 
+      exists (g : forall i : F, {linear (I i) -> (I i)}),
+        forall i : F, linConcat.map (dsLmod.injLin I i) (f i) = g i.
+Proof. move=> fi.
+  by refine(ex_intro _ (fun i => linConcat.map (dsLmod.injLin I i) (fi i)) _ ).
+Qed.
