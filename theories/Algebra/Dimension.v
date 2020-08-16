@@ -28,15 +28,30 @@ Module ringCartProd.
       Definition unit_bset := lmodFinSet.Build unit_injective unit_nondegen.
 
       Lemma unit_li : li unit_bset.
-      Proof. apply fin_li; move=>/=c H b.
+      Proof. move=>/=c H b.
         rewrite -big_enum in H; simpl in H.
+        rewrite big_enum_cond in H; simpl in H.
+      Admitted. (*
+        rewrite /unit_fn in H.
+        rewrite (big_pred1 tt) in H.
+        rewrite /unit_fn in H.
+        case b.
+        apply (@lmods.ringModEq R) in H.
+        Set Printing All.
+        rewrite/lmods.ringMod in H.
+        rewrite -H.
         rewrite enumT in H.
-      Admitted.
+        assert (J := @unit_enumP).
+        rewrite /Finite.axiom in J.
+        rewrite enumP in H.
 
-      Lemma unit_spanning : spanning (lmodBasisSet.Build (fun _ : unit_bset => linID.map (lmods.ringMod R))).
-      Proof. move=>/=x.
-        refine (exist _ (lmodFinSet.BuildSelfSubSet unit_bset) _).
-        rewrite /lmodLocalFinGenSet.spanProp -big_enum enumT=>//=.
+        rewrite /lmodFinSet.BuildSelfSubSet in b.
+      Admitted.*)
+
+      Lemma unit_spanning : spanning unit_bset.
+      Proof. move=>/=x. rewrite /lmodFinBasis.spanProj.
+        refine (exist _ (fun _ => linID.map _) _).
+        rewrite /lmodFinBasis.spanProp -big_enum enumT=>//=.
       Admitted.
 
       Definition unitBasis : lmodFinBasisType (lmods.ringMod R) := lmodFinBasis.Build unit_li unit_spanning.
@@ -89,7 +104,7 @@ Export ringIBN.Exports.
 Module fdFreeLmodDimension.
   Section Def.
   Definition dim {R : ringIBNType} (M : fdFreeLmodType R) : nat
-    := lmodFinBasis.basis_number (basis M).
+    := lmodFinBasis.basis_number (fdBasis M).
   End Def.
 
   Section Theory.
@@ -104,13 +119,14 @@ Module fdFreeLmodDimension.
     rewrite /(enum (to_FinType (lmodFinBasis.sort B2))).
     destruct(Finite.enum (to_FinType (lmodFinBasis.sort B1))) as []eqn:E=>//=.
     destruct(Finite.enum (to_FinType (lmodFinBasis.sort B2))) as []eqn:E2=>//=.
+    Admitted. (*
     assert (A := fin_span B2 (B1 s)); move: A;
-    rewrite /lmodLocalFinGenSet.spanProp
+    rewrite /lmodFinGenSet.spanProp
       /lmodFinSet.BuildSelfSubSet/lmodFinSubSetIncl
       -big_enum enumT E2 big_nil -(rwP eqP)=>A.
     assert (D:= @typeIsNonDegenerate _ _ B1 s);
     by move: D; rewrite A eq_refl-(rwP eqP) =>D.
-    Admitted.
+    Admitted.*)
     Theorem invariant_dimension {M : lmodType R}
       (B1 B2 : lmodFinBasisType M) : basis_number B1 == basis_number B2.
     Proof.

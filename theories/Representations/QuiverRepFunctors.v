@@ -8,8 +8,8 @@ Set Warnings "-ambiguous-paths". (* Some weird bug in ssralg throws out coercion
     From mathcomp Require Import ssralg.
 Set Warnings "ambiguous-paths".
 
-Require Import Algebras QuiverRep PathAlgebra Submodule Morphism.
-Require Import PathAlgebraBasis Basis FreeModules DirectSum Dimension.
+Require Import Algebras QuiverRep PathAlgebra Submodule Morphism ntPath Path.
+Require Import PathAlgebraBasis Basis FreeModules DirectSum Dimension Matrices.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -33,26 +33,112 @@ Module QuivRepFunc.
       the R-module dsum_vertices, turning it into a
       (path-algebra)-module
       *)
-      Definition path_action_Lin (p : pathAlgBasis R Q)
+      Definition path_action_Lin (p : pathAlgBasis R Q) : {linear dsum_vertices -> dsum_vertices}
       :=  linConcat.map
             (fdFreeLmodProj VIndex (Path.tail p))
             (linConcat.map
               (QuivRep.Path V p)
               (fdFreeLmodInj VIndex (Path.head p))
             ).
-      Definition action (v1 : dsum_vertices) : lmodMatrixType (pathAlgBasis R Q) (basis dsum_vertices)
+
+      Definition ntpath_action_mul_Lin (p q : NTPath.type Q) :
+       {linear dsum_vertices -> dsum_vertices}
+        := match \head_p--Q-->\tail_q
+        as J' return _ = J' -> _
+      with  true =>
+            fun J' => path_action_Lin (inr (NTPath.cat J'))
+         | false =>
+            fun _ => linZero.map _ _ end
+      (erefl (\head_p--Q-->\tail_q)).
+      
+      Definition path_action_mul_Lin (p q : pathAlgBasis R Q) : {linear dsum_vertices -> dsum_vertices}
+       := match p : pathType Q with
+       |\e_i => if (Path.tail q) == i
+          then path_action_Lin q
+          else linZero.map _ _
+       |inr p' => match q : pathType Q with
+          |\e_i => if (Path.head p' == i)
+                  then path_action_Lin p
+                  else linZero.map _ _
+          |inr q'   => ntpath_action_mul_Lin p' q'
+        end
+      end.
+      
+      Lemma path_action_mul (p q : pathAlgBasis R Q)
+       : (path_action_Lin q) \o (path_action_Lin p) = path_action_mul_Lin p q.
+      Proof.
+        case p=>[pi|pp].
+        {
+          case q=>[qi|qq].
+          {
+            rewrite /path_action_mul_Lin/comp/path_action_Lin.
+            apply functional_extensionality=>v/=.
+            case (qi == pi) as []eqn:E.
+              by apply (rwP eqP) in E;
+                rewrite E fdFreeLmodFin.proj_injK.
+              by rewrite fdFreeLmodFin.proj_inj0;
+                [rewrite GRing.linear0| rewrite E].
+          } {
+            rewrite /path_action_mul_Lin/comp/path_action_Lin.
+            apply functional_extensionality=>v/=.
+            case (\t_Q(\tail_qq) == pi) as []eqn:E=>/=.
+              by apply (rwP eqP) in E;
+                rewrite -E fdFreeLmodFin.proj_injK.
+              by rewrite fdFreeLmodFin.proj_inj0;
+                [rewrite !GRing.linear0| rewrite E].
+          }
+        } {
+          case q=>[qi|qq].
+          {
+            rewrite /path_action_mul_Lin/comp/path_action_Lin.
+            apply functional_extensionality=>v/=.
+            case (\h_Q(\head_pp) == qi) as []eqn:E=>/=.
+              by apply (rwP eqP) in E;
+            rewrite -E fdFreeLmodFin.proj_injK.
+              by rewrite fdFreeLmodFin.proj_inj0;
+                [rewrite !GRing.linear0 | rewrite eq_sym E].
+          } {
+            rewrite /path_action_mul_Lin/comp/path_action_Lin.
+            apply functional_extensionality=>v/=.
+            destruct pp as [[pa pp] pH], qq as [[qa qq] qH].
+            induction pp.
+            rewrite/NTPath.type2path/NTPath.type2head/NTPath.type2deTail/NTPath.type2tail=>/=.
+            case (\h_Q(pa) == \t_Q(qa)) as []eqn:E. {
+              apply (rwP eqP) in E=>/=.
+              rewrite E.
+          }
+
+              case(pi == \h_Q( \head_ (qq))) as []eqn:E2.
+                apply (rwP eqP) in E2.
+                rewrite E2.
+                rewrite fdFreeLmodFin.proj_injK.
+              rewrite fdFreeLmodFin.proj_inj0.
+              by rewrite GRing.linear0.
+              case(pi == \h_Q( \head_ (qq))) as []eqn:E2.
+                apply (rwP eqP) in E2.
+                rewrite E2 in E.
+                by [].
+            }
+        
+        rewrite eq_refl=>/=.
+        rewrite /fdFreeLmodProj=>/=.
+        rewrite /fdFreeLmodFin.inj=>/=.
+        rewrite /fdFreeLmodFin.proj=>/=.
+        rewrite /fdFreeLmodFin.from_direct_sum.
+
+      Definition action (v1 : dsum_vertices) : lmodMatrixType (freePathAlgType R Q) (fdFreeLmod.to_arb dsum_vertices)
        := fun b_pv => let (b_p,b_v2) := b_pv in
-       lmodBasisProj (basis dsum_vertices) b_v2 (path_action_Lin b_p v1).
+       lmodBasisProj (basis (fdFreeLmod.to_arb dsum_vertices)) b_v2 (path_action_Lin b_p v1).
 
       Definition scale (r : pathAlgType R Q) (v : dsum_vertices)
-      := linExtend.extendLinearlyR (action v) r.
+      := extendLinearlyRisky (action v) r.
        (*Takes each basis element of v in V_tp
         to the corresponding sum of basis elements in V_hp and scales by r(p) *)
         
       Lemma scale_comp (a b : pathAlgType R Q) (v : dsum_vertices) : scale a (scale b v) = scale (a * b) v.
       Proof.
         rewrite /scale=>/=.
-        rewrite {1}/action.
+        rewrite {1}/action=>/=.
 
         fun b_pv : PAlgBasis.pathAlgBasisSet R Q * basis dsum_vertices =>
         let (b_p, b_v2) := b_pv in

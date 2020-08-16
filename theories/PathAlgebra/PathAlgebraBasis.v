@@ -15,38 +15,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 
 Module PAlgBasis.
-  Section Element.
-    Variable (R : comRingType) (Q : finQuiverType).
-    Definition elem (p : pathType Q) : pathAlgType R Q
-     := fun p' => if p' == p then 1 else 0.
-(*
-     Lemma elem_lin (p : pathType Q) : linear (elem p).
-     Proof. by rewrite /(GRing.add _)=>/=. Qed.
-
-     Definition pathApplyLin (p : T) : {linear lmod_type -> R |*%R}
-       := Linear (pathApply_lin p).
-*)
-    Lemma idemR : forall (p : pathType Q),
-      (elem p) * (elem \e_(Path.tail p)) = (elem p).
-    Proof. move=>p; rewrite /(GRing.mul _)=>/=.
-    rewrite /PAMul.Mul.
-    apply functional_extensionality=>p'.
-    case p'=>s. {
-    case (\e_ (s) == p) as []eqn:E. {
-    Admitted.
-    (*apply (rwP eqP) in E.  rewrite E eq_refl -E. GRing.mulr1=>/=.
-    by rewrite E GRing.mul0r. } {
-    rewrite /PAMul.MulEndPairs.
-    Admitted.*)
-
-    Lemma idemL : forall (p : pathType Q),
-      (elem \e_(Path.head p)) * (elem p) = (elem p).
-    Proof. move=> p. Admitted.
-
-    Lemma idem : forall (i : \V_Q),
-      (elem \e_i) * (elem \e_i) = (elem \e_i).
-    Proof. move=>i; apply(idemR \e_i). Qed.
-  End Element.
+Include ntPath.NTPath.Exports.
 
   Section Def.
     Variable (R : comRingType) (Q : finQuiverType).
@@ -69,12 +38,64 @@ Module PAlgBasis.
       by rewrite H eq_refl.
     Qed.*)
 
-    Definition pathAlgLISet := formalLC.li_set R (Path.Path_eqType Q).
-    Definition pathAlgBasisSet := formalLC.genSet R (Path.Path_eqType Q).
+    Definition pathAlgBasis := formalLC.basis R (Path.eqType Q).
+
+    Section Element.
+      Definition elem : pathType Q -> pathAlgType R Q
+      := pathAlgBasis.
+
+  Lemma idemR : forall (p : pathType Q),
+    (elem p) * (elem \e_(Path.tail p)) = (elem p).
+  Proof. move=>p; rewrite /(GRing.mul _)=>/=.
+  rewrite /PAMul.Mul/elem=>/=.
+  rewrite /formalLC.elem=>/=.
+  apply functional_extensionality=>p'.
+  case (p' == p) as []eqn:E.
+    apply (rwP eqP) in E; rewrite E.
+    case p as [i|r]eqn:P.
+    by rewrite /Path.BuildPairs big_cons big_nil eq_refl GRing.mul1r GRing.addr0=>/=.
+
+    destruct r as [[a r] H].
+    clear P E.
+  Admitted.
+    destruct H.
+    induction r as []=>/=.
+    rewrite /ntPath.NTPath.type2tail/ntPath.NTPath.type2deTail=>/=.
+      rewrite !big_cons big_nil GRing.mul0r GRing.addr0 GRing.add0r=>/=.
+      by rewrite !eq_refl GRing.mul1r.
+
+      rewrite big_cat=>/=.
+
+      rewrite /Path.BuildPairs=>/=.
+      rewrite /ntPath.NTPath.type2tail=>/=.
+      rewrite /ntPath.NTPath.type2tail in IHr; simpl in IHr.
+      rewrite /ntPath.NTPath.type2tail/ntPath.NTPath.type2deTail in IHr; simpl in IHr.
+      rewrite !big_cons GRing.mul0r GRing.add0r=>/=.
+      rewrite IHr.
+      rewrite eq_refl in E2.
+      rewrite E2 GRing.mul0r.
+  case p'=>s. {
+  case (\e_ (s) == p) as []eqn:E. {
+  Admitted.
+  (*apply (rwP eqP) in E.  rewrite E eq_refl -E. GRing.mulr1=>/=.
+  by rewrite E GRing.mul0r. } {
+  rewrite /PAMul.MulEndPairs.
+  Admitted.*)
+
+  Lemma idemL : forall (p : pathType Q),
+    (elem \e_(Path.head p)) * (elem p) = (elem p).
+  Proof. move=> p. Admitted.
+
+  Lemma idem : forall (i : \V_Q),
+    (elem \e_i) * (elem \e_i) = (elem \e_i).
+  Proof. move=>i; apply(idemR \e_i). Qed.*)
+End Element.
+
+(*    Definition pathAlgBasisSet := formalLC.genSet R (Path.Path_eqType Q).
     Definition pathAlgBasis := lmodBasisSet.Pack (lmodBasisSet.Class
       (lmodBasisSet.Mixin
         (fun p : pathAlgBasisSet => @formalLC.pathApplyLin R (Path.Path_eqType Q) p)
-      )).
+      )).*)
     Definition freePathAlgType := freeLmod.Build pathAlgBasis.
   End Def.
 
@@ -84,7 +105,7 @@ Module PAlgBasis.
   Proof.
     rewrite/(GRing.one _)=>/=.
     apply functional_extensionality=>p.
-    assert(formalLC.pathApplyLin R p (PAMul.One R Q) = formalLC.pathApplyLin R p(\big[+%R/0]_i elem R \e_ (i))). {
+    assert(formalLC.pathApplyLin p (PAMul.One R Q) = formalLC.pathApplyLin p(\big[+%R/0]_i elem R \e_ (i))). {
     rewrite GRing.raddf_sum=>/=.
     rewrite /formalLC.pathApply/PAMul.One/elem.
     case p as [a|a]. {

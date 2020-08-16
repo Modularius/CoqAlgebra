@@ -15,6 +15,7 @@ theories/Algebra/Basis.v
 theories/Algebra/FreeModules.v
 theories/Algebra/FormalLC.v
 theories/Algebra/Dimension.v
+theories/Algebra/Matrices.v
 theories/Algebra/ChainComplex.v
 theories/Algebra/Projective.v
 

@@ -133,7 +133,7 @@ Module formalLC.
       Lemma pathApply_lin (p : T) : linear_for (@GRing.mul R) (pathApply p).
       Proof. by rewrite /(GRing.add _)=>/=. Qed.
 
-      Definition pathApplyLin (p : T) : {linear lmod_type -> R |*%R}
+      Definition pathApplyLin (p : genSet) : {linear lmod_type -> R |*%R}
         := Linear (pathApply_lin p).
 
       Lemma pathApplyLin_one : forall b, pathApplyLin b (elem b) == 1.
@@ -146,31 +146,24 @@ Module formalLC.
       Qed.
     End PathApply.
 
-    Lemma elem_li : lmodLISet.axiom genSet.
-    Proof. rewrite /elem => F proj =>H finb; move:H.
-      rewrite -(rwP eqP)=>H.
-      apply (f_equal (pathApplyLin (lmodFinSubSetIncl finb))) in H; move:H.
-      rewrite (GRing.raddf_sum (pathApplyLin (lmodFinSubSetIncl finb))) /formalLC.Zero=>/=.
-      rewrite /pathApply/elem=>H.
-      assert(forall i, true->
-        (proj i * (if lmodFinSubSetIncl finb == lmodFinSubSetIncl i then 1 else 0)) =
-        ((if lmodFinSubSetIncl i == lmodFinSubSetIncl finb then proj i else 0))
-      ).
-      move=>i _.
-      by case(lmodFinSubSetIncl finb == lmodFinSubSetIncl i) as []eqn:E ;
-      [rewrite GRing.mulr1|rewrite GRing.mulr0]; rewrite eq_sym in E;
-      rewrite E.
-      rewrite (eq_bigr _ H0) in H; clear H0.
-      rewrite -big_mkcond in H.
+    Lemma elem_orth : lmodOrthoSet.orthonormP pathApplyLin.
+    Proof. move=>b1 b2=>/=;
+    by rewrite /elem/pathApply. Qed.
+
+    Lemma elem_basis : lmodBasis.basisP pathApplyLin.
+    Proof. move=>m1 m2.
+      apply (iffP idP)=>H.
+      apply (rwP eqP) in H.
+      by destruct H.
+
       simpl in H.
-      destruct F as [F f I].
-      simpl in f, H.
-    Admitted.
+      rewrite -(rwP eqP).
+      apply functional_extensionality=>x.
+      apply (H x).
+    Qed.
 
-    Definition li_set : lmodLISet.type _
-      := lmodLISet.Build elem_li.
-
-    (*Definition freeModType := freeLmod.Build basis.*)
+    Definition basis : lmodBasisType _
+      := lmodBasis.Build (O := elem_orth) elem_basis.
 
   End FreeLmod.
 (*  Section FreeSubmod.

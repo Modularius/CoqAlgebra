@@ -17,11 +17,11 @@ Module Path.
   Section Def.
     Variable (Q : finQuiverType).
     Definition type := (\V_Q + NTPath.type Q)%type.
-    Definition Path_eqType
+    Definition eqType
      := [eqType of type for (sum_eqType \V_Q (NTPath.ntPath_eqType Q))].
-    Definition Path_choiceType
+    Definition choiceType
      := [choiceType of type for (sum_choiceType \V_Q (NTPath.ntPath_choiceType Q))].
-    Definition Path_countType
+    Definition countType
      := [countType of type for (sum_countType \V_Q (NTPath.ntPath_countType Q))].
 
     Definition nonTrivPathToPath (p : nonTrivPathType Q) : type :=
@@ -57,12 +57,11 @@ Module Path.
     Notation "\e_ v" := (inl v) (at level 0).
     Coercion nonTrivPathToPath : nonTrivPathType >-> type.
     Notation pathType := type.
-
-    Canonical Path_eqType.
-    Canonical Path_choiceType.
-    Canonical Path_countType.
   End Exports.
 End Path.
+Canonical Path.eqType.
+Canonical Path.choiceType.
+Canonical Path.countType.
 
 Export Path.Exports.
 (*
