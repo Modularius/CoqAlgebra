@@ -12,17 +12,18 @@ Require Import ntPathPairs ntPath Quiver.
 Set Implicit Arguments.
 Unset Strict Implicit.
 
+Include ntPath.
 Module Path.
 
   Section Def.
     Variable (Q : finQuiverType).
     Definition type := (\V_Q + NTPath.type Q)%type.
     Definition eqType
-     := [eqType of type for (sum_eqType \V_Q (NTPath.ntPath_eqType Q))].
+     := [eqType of type for (sum_eqType \V_Q (NTPath.countType Q))].
     Definition choiceType
-     := [choiceType of type for (sum_choiceType \V_Q (NTPath.ntPath_choiceType Q))].
+     := [choiceType of type for (sum_choiceType \V_Q (NTPath.countType Q))].
     Definition countType
-     := [countType of type for (sum_countType \V_Q (NTPath.ntPath_countType Q))].
+     := [countType of type for (sum_countType \V_Q (NTPath.countType Q))].
 
     Definition nonTrivPathToPath (p : nonTrivPathType Q) : type :=
       inr p.
@@ -57,11 +58,12 @@ Module Path.
     Notation "\e_ v" := (inl v) (at level 0).
     Coercion nonTrivPathToPath : nonTrivPathType >-> type.
     Notation pathType := type.
+
+    Canonical eqType.
+    Canonical choiceType.
+    Canonical countType.
   End Exports.
 End Path.
-Canonical Path.eqType.
-Canonical Path.choiceType.
-Canonical Path.countType.
 
 Export Path.Exports.
 (*

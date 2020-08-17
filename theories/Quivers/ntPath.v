@@ -18,19 +18,19 @@ Module NTPath.
   Section Def.
     Variable (Q : finQuiverType).
 
-    Definition type := { ty | path (EG Q) ty.1 ty.2 }.
-
+    Definition predicate : pred _ := (fun ty  => path (EG Q) ty.1 ty.2).
+    Definition type := { ty | predicate ty}.
+    
     Definition type2tail (p : type) := (sval p).1.
     Definition type2deTail (p : type) := (sval p).2.
     Definition type2path (p : type) := (proj2_sig p).
-    Definition type2head (p : type) := (seq.last (sval p).1 (sval p).2).
+    Definition type2head (p : type) := (seq.last (type2tail p) (type2deTail p)).
 
-    Definition predicate : pred _ := (fun ty  => path (EG Q) ty.1 ty.2).
-    Definition ntPath_eqType
+    Definition eqType
      := [eqType of type for sig_eqType predicate].
-    Definition ntPath_choiceType
+    Definition choiceType
      := [choiceType of type for sig_choiceType predicate].
-    Definition ntPath_countType
+    Definition countType
        := [countType of type for sig_countType predicate].
 
     Local Notation "\tail_ p " := (type2tail p) (at level 0).
@@ -44,11 +44,12 @@ Module NTPath.
     Section Operations.
       (* the proof of a concatenation *)
       Definition cat_proof {p1 p2 : type} (J : \head_p1 -- Q --> \tail_p2) :
-        path (EG Q) \tail_p1  (\rest_p1 ++ \list_p2).
+        predicate (\tail_p1, \rest_p1 ++ \list_p2).
       Proof. destruct p1.
-        rewrite cat_path -(rwP andP); split=>//=.
+        rewrite /predicate cat_path -(rwP andP); split=>//=.
         destruct p2=>/=.
-        by rewrite -(rwP andP); split=>//=.
+        move: J; rewrite /predicate=>J.
+        rewrite -(rwP andP); split=>//=.
       Qed.
 
       Definition cat
@@ -57,7 +58,7 @@ Module NTPath.
 
       (* the proof of a cons *)
       Definition cons_proof {a} {p : type} (J : a -- Q --> \tail_p) :
-        path (EG Q) a \list_p.
+        predicate(a, \list_p).
       Proof. rewrite -(rwP andP); split=>//=; apply \path_p. Qed.
 
       Definition cons a (p : type) (J : a -- Q --> \tail_p) : type :=
@@ -65,8 +66,8 @@ Module NTPath.
 
       (* the proof of an rcons *)
       Definition rcons_proof {z} {p : type} (J : \head_p -- Q --> z) :
-       path (EG Q) \tail_p (rcons (\rest_p) z).
-      Proof. rewrite rcons_path -(rwP andP); split=>//=; apply \path_p. Qed.
+       predicate (\tail_p, rcons (\rest_p) z).
+      Proof. rewrite /predicate rcons_path -(rwP andP); split=>//=; apply \path_p. Qed.
 
       Definition rcons (p : type) z (J : \head_p -- Q --> z) : type :=
         \mkPath(\tail_p --> rcons (\rest_p) z | rcons_proof J ).
@@ -115,7 +116,7 @@ Module NTPath.
         Qed.
 
         Definition path_behead_proof {a L} (p : type)
-          (I : a::L = \rest_p) : path (EG Q) a L.
+          (I : a::L = \rest_p) : predicate (a,L).
         Proof.
           destruct p as [[a' p] P]; move: P I.
           rewrite /type2tail/type2deTail=>/=P I.
@@ -128,7 +129,8 @@ Module NTPath.
         Proof. move: a p;
           induction L=>//=; rewrite /type2deTail/type2tail=>a0 p I/=. {
           rewrite -I /seq.last; move: I.
-          destruct p as [p P]=>/=I; destruct I.
+          destruct p as [p P]=>/=I.
+          rewrite/predicate -I in P.
           by apply (rwP andP) in P as [P _].
           } {
           destruct p as [[a' p] P]; move: P I=>/=P I.
@@ -409,11 +411,11 @@ Module NTPath.
       Notation "\( p <:: z )_ J" := (rcons p z J) (at level 0).
       Notation "\rev_ p" := (rev p) (at level 0).
       Notation "\digraph_ Q " := (path (EG Q)) (at level 0).
-
-      Canonical ntPath_eqType.
-      Canonical ntPath_choiceType.
-      Canonical ntPath_countType.
     End Exports.
 
 End NTPath.
 Export NTPath.Exports.
+
+Canonical NTPath.eqType.
+Canonical NTPath.choiceType.
+Canonical NTPath.countType.

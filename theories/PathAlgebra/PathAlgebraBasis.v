@@ -19,24 +19,6 @@ Include ntPath.NTPath.Exports.
 
   Section Def.
     Variable (R : comRingType) (Q : finQuiverType).
-    (*Lemma elem_li : lmodLISet.axiom (formalLC.genSet R (Path.Path_eqType Q)).
-    Proof. rewrite /elem => f coef =>H finb; move:H.
-      rewrite -(rwP eqP)=>H.
-      apply (f_equal (formalLC.pathApplyLin R (f finb))) in H; move:H.
-      rewrite (GRing.raddf_sum (formalLC.pathApplyLin _ (f finb))) /formalLC.Zero=>/=.
-      rewrite /formalLC.pathApply=>H.
-      assert(forall i, true->
-        (coef i * (if f finb == f i then 1 else 0)) =
-        ((if f finb == f i then coef i else 0))
-      ).
-      move=>i _.
-      by case(f finb == f i);[rewrite GRing.mulr1|rewrite GRing.mulr0].
-      rewrite (eq_bigr _ H0) in H; clear H0.
-      rewrite -big_mkcond in H; simpl in H.
-      destruct f as [F f I].
-      rewrite (eq_bigl _ _ (inj_eq I finb)) (eq_bigl _ _ (eq_sym _)) big_pred1_eq in H.
-      by rewrite H eq_refl.
-    Qed.*)
 
     Definition pathAlgBasis := formalLC.basis R (Path.eqType Q).
 
@@ -44,52 +26,29 @@ Include ntPath.NTPath.Exports.
       Definition elem : pathType Q -> pathAlgType R Q
       := pathAlgBasis.
 
-  Lemma idemR : forall (p : pathType Q),
-    (elem p) * (elem \e_(Path.tail p)) = (elem p).
-  Proof. move=>p; rewrite /(GRing.mul _)=>/=.
-  rewrite /PAMul.Mul/elem=>/=.
-  rewrite /formalLC.elem=>/=.
-  apply functional_extensionality=>p'.
-  case (p' == p) as []eqn:E.
-    apply (rwP eqP) in E; rewrite E.
-    case p as [i|r]eqn:P.
-    by rewrite /Path.BuildPairs big_cons big_nil eq_refl GRing.mul1r GRing.addr0=>/=.
+    Lemma idemR : forall (p : pathType Q),
+      (elem p) * (elem \e_(Path.tail p)) = (elem p).
+    Proof. move=>p; rewrite /(GRing.mul _)=>/=.
+    rewrite /PAMul.Mul/elem=>/=.
+    rewrite /formalLC.elem=>/=.
+    apply functional_extensionality=>p'.
+    case (p' == p) as []eqn:E.
+      apply (rwP eqP) in E; rewrite E.
+      case p as [i|r]eqn:P.
+      by rewrite /Path.BuildPairs big_cons big_nil eq_refl GRing.mul1r GRing.addr0=>/=.
 
-    destruct r as [[a r] H].
-    clear P E.
-  Admitted.
-    destruct H.
-    induction r as []=>/=.
-    rewrite /ntPath.NTPath.type2tail/ntPath.NTPath.type2deTail=>/=.
-      rewrite !big_cons big_nil GRing.mul0r GRing.addr0 GRing.add0r=>/=.
-      by rewrite !eq_refl GRing.mul1r.
+      destruct r as [[a r] H].
+      clear P E.
+    Admitted.
 
-      rewrite big_cat=>/=.
+    Lemma idemL : forall (p : pathType Q),
+      (elem \e_(Path.head p)) * (elem p) = (elem p).
+    Proof. move=> p. Admitted.
 
-      rewrite /Path.BuildPairs=>/=.
-      rewrite /ntPath.NTPath.type2tail=>/=.
-      rewrite /ntPath.NTPath.type2tail in IHr; simpl in IHr.
-      rewrite /ntPath.NTPath.type2tail/ntPath.NTPath.type2deTail in IHr; simpl in IHr.
-      rewrite !big_cons GRing.mul0r GRing.add0r=>/=.
-      rewrite IHr.
-      rewrite eq_refl in E2.
-      rewrite E2 GRing.mul0r.
-  case p'=>s. {
-  case (\e_ (s) == p) as []eqn:E. {
-  Admitted.
-  (*apply (rwP eqP) in E.  rewrite E eq_refl -E. GRing.mulr1=>/=.
-  by rewrite E GRing.mul0r. } {
-  rewrite /PAMul.MulEndPairs.
-  Admitted.*)
-
-  Lemma idemL : forall (p : pathType Q),
-    (elem \e_(Path.head p)) * (elem p) = (elem p).
-  Proof. move=> p. Admitted.
-
-  Lemma idem : forall (i : \V_Q),
-    (elem \e_i) * (elem \e_i) = (elem \e_i).
-  Proof. move=>i; apply(idemR \e_i). Qed.*)
-End Element.
+    Lemma idem : forall (i : \V_Q),
+      (elem \e_i) * (elem \e_i) = (elem \e_i).
+    Proof. move=>i; apply(idemR \e_i). Qed.
+  End Element.
 
 (*    Definition pathAlgBasisSet := formalLC.genSet R (Path.Path_eqType Q).
     Definition pathAlgBasis := lmodBasisSet.Pack (lmodBasisSet.Class
