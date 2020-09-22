@@ -75,7 +75,7 @@ Module lmodMatrix.
   End Exports.
 End lmodMatrix.
 Export lmodMatrix.Exports.
-
+(*
 Module linExtend.
   Section InfiniteDimensional.
     Variable (R : ringType) (M1 M2 : freeLmodType R).
@@ -173,7 +173,7 @@ Module linExtend.
     Notation extendLinearlyRiskyK := extendLinearlyRK.*)
   End Exports.
 End linExtend.
-Export linExtend.Exports.
+Export linExtend.Exports.*)
 (*
 Module freeLmodMorphism.
   Section Def.

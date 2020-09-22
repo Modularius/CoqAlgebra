@@ -13,40 +13,92 @@ Require Import Quiver.
 Set Implicit Arguments.
 Unset Strict Implicit.
 
+Module seq1.
+  Inductive type (T : Type) :=
+  |nil1 : T -> type T
+  |cons1 : T -> type T -> type T.
+
+  Fixpoint to_seq {T} (S : type T) := match S with
+  |nil1 a => a::nil
+  |cons1 a t => a::(to_seq t)
+  end.
+
+  Fixpoint to_seq1 {T} (a : T) (S : seq T) := match S with
+  |nil => nil1 a
+  |cons a' t => cons1 a (to_seq1 a' t)
+  end.
+
+  Lemma to_seq1_cons {T} (a a' : T) (t : seq T) :
+  to_seq1 a (a'::t) = cons1 a (to_seq1 a' t).
+  Proof. by rewrite /to_seq1. Qed.
+
+  Lemma to_seq_to_seq1 {T} (a : T) (t : seq T) :
+  to_seq (to_seq1 a t) = a::t.
+  Proof. move:a. induction t=>//a'. rewrite to_seq1_cons/to_seq.
+  by rewrite -IHt. Qed.
+
+  Coercion to_seq : type >-> seq.
+  Definition tail {T} (S : type T) := 
+    match S with nil1 a => a |cons1 a _ => a end.
+  Definition rest {T} (S : type T) := 
+    match S with nil1 _ => nil |cons1 _ t => to_seq t end.
+
+  Module Exports.
+    Notation seq1 := type.
+    Notation to_seq1 := to_seq1.
+  End Exports.
+End seq1.
+Export seq1.Exports.
+
 Module NTPath.
   Local Notation EG := Quiver.EdgeGraph.
   Section Def.
     Variable (Q : finQuiverType).
 
-    Definition predicate : pred _ := (fun ty  => path (EG Q) ty.1 ty.2).
+    Definition predicate : pred _ := (fun ty : seq1 \A_Q  => path (EG Q) (seq1.tail ty) (seq1.rest ty)).
+  
+    Lemma tail_of (a : \A_Q) (t : seq \A_Q) : seq1.tail (to_seq1 a t) = a.
+    Proof. rewrite /seq1.tail/to_seq1;
+      by induction t. Qed.
+    
+    Lemma rest_of (a : \A_Q) (t : seq \A_Q) : seq1.rest (to_seq1 a t) = t.
+    Proof. rewrite /seq1.rest=>/=.
+      induction t as []=>//.
+      by rewrite seq1.to_seq1_cons seq1.to_seq_to_seq1.
+    Qed.
+  
     Definition type := { ty | predicate ty}.
     
-    Definition type2tail (p : type) := (sval p).1.
-    Definition type2deTail (p : type) := (sval p).2.
+    Definition type2tail (p : type) := seq1.tail (sval p).
+    Definition type2deTail (p : type) := seq1.rest (sval p).
     Definition type2path (p : type) := (proj2_sig p).
     Definition type2head (p : type) := (seq.last (type2tail p) (type2deTail p)).
 
-    Definition eqType
+    (*Definition eqType
      := [eqType of type for sig_eqType predicate].
     Definition choiceType
      := [choiceType of type for sig_choiceType predicate].
     Definition countType
-       := [countType of type for sig_countType predicate].
+       := [countType of type for sig_countType predicate].*)
 
     Local Notation "\tail_ p " := (type2tail p) (at level 0).
     Local Notation "\rest_ p " := (type2deTail p) (at level 0).
     Local Notation "\path_ p " := (type2path p) (at level 0).
     Local Notation "\head_ p " := (seq.last \tail_p \rest_p) (at level 0).
     Local Notation "\list_ p " := (cons \tail_p \rest_p) (at level 0).
-    Local Notation "\mkPath( a --> r | p ) " := (exist _ (a,r) p) (at level 0).
+    Local Notation "\mkPath( a --> r | p ) " := (exist _ (to_seq1 a r) p) (at level 0).
     Local Notation "a -- Q --> b" := (EG Q a b) (at level 0).
 
     Section Operations.
       (* the proof of a concatenation *)
       Definition cat_proof {p1 p2 : type} (J : \head_p1 -- Q --> \tail_p2) :
-        predicate (\tail_p1, \rest_p1 ++ \list_p2).
-      Proof. destruct p1.
-        rewrite /predicate cat_path -(rwP andP); split=>//=.
+        predicate (to_seq1 \tail_p1 (\rest_p1 ++ \list_p2)).
+      Proof.
+        rewrite /predicate tail_of rest_of.
+
+      destruct p1.
+        rewrite /type2tail/type2deTail=>/=.
+        rewrite cat_path -(rwP andP); split=>//=.
         destruct p2=>/=.
         move: J; rewrite /predicate=>J.
         rewrite -(rwP andP); split=>//=.
@@ -58,16 +110,18 @@ Module NTPath.
 
       (* the proof of a cons *)
       Definition cons_proof {a} {p : type} (J : a -- Q --> \tail_p) :
-        predicate(a, \list_p).
-      Proof. rewrite -(rwP andP); split=>//=; apply \path_p. Qed.
+        predicate (to_seq1 a \list_p).
+      Proof.
+        rewrite /predicate tail_of rest_of.
+        rewrite -(rwP andP); split=>//=; apply \path_p. Qed.
 
       Definition cons a (p : type) (J : a -- Q --> \tail_p) : type :=
         \mkPath(a --> \list_p | cons_proof J).
 
       (* the proof of an rcons *)
       Definition rcons_proof {z} {p : type} (J : \head_p -- Q --> z) :
-       predicate (\tail_p, rcons (\rest_p) z).
-      Proof. rewrite /predicate rcons_path -(rwP andP); split=>//=; apply \path_p. Qed.
+       predicate (to_seq1 \tail_p (rcons (\rest_p) z)).
+      Proof. rewrite /predicate tail_of rest_of rcons_path -(rwP andP); split=>//=; apply \path_p. Qed.
 
       Definition rcons (p : type) z (J : \head_p -- Q --> z) : type :=
         \mkPath(\tail_p --> rcons (\rest_p) z | rcons_proof J ).
@@ -76,7 +130,7 @@ Module NTPath.
       Definition length (p : type) : nat := size \list_p.
     End Functions.
 
-    Local Notation "\mkPath( a --> r | p ) " := (exist _ (a,r) p) (at level 0).
+    Local Notation "\mkPath( a --> r | p ) " := (exist _ (to_seq1 a r) p) (at level 0).
     Local Notation "\( p ++ q )_ J" := (cat p q J) (at level 0).
     Local Notation "\( a ::> p )_ J" := (cons a p J) (at level 0).
     Local Notation "\( p <:: z )_ J" := (rcons p z J) (at level 0).
@@ -89,19 +143,22 @@ Module NTPath.
         Lemma join_cat {p1 p2 : type} {t3}  :
              forall (J12 : \head_p1 -- Q --> \tail_p2) (J23 : \head_p2 -- Q --> t3),
                 \head_(cat J12) -- Q --> t3.
-        Proof. by move=> J12 J23; rewrite last_cat last_cons. Qed.
+        Proof. move=> J12 J23.
+        by rewrite/cat/type2tail/type2deTail tail_of rest_of last_cat last_cons.
+        Qed.
 
         Lemma cat_join {h1} {p2 p3 : type}  :
              forall (J12 : h1 -- Q --> \tail_p2) (J23 : \head_p2 -- Q --> \tail_p3),
                 h1 -- Q --> \tail_(cat J23).
-        Proof. by []. Qed.
+        Proof. rewrite/cat/type2tail/type2deTail=>/=; by rewrite tail_of. Qed.
 
         Lemma catA (p1 p2 p3 : type)
           (J12 : \head_p1 -- Q --> \tail_p2) (J23 : \head_p2 -- Q --> \tail_p3) : 
           cat (join_cat J12 J23) = cat (cat_join J12 J23).
         Proof.
           rewrite /cat/type2tail/type2deTail=>/=.
-          apply eq_sig_hprop=>//=[x|]; by [apply proof_irrelevance|rewrite -cat_cons catA].
+          apply eq_sig_hprop=>//=[x|]; [apply proof_irrelevance|].
+          by rewrite !tail_of !rest_of -cat_cons catA.
         Qed.
       End ConcatAssociativity.
 
@@ -109,18 +166,23 @@ Module NTPath.
         Lemma path_first_join {a L} (p : type) : 
           (a::L = \rest_p) -> \tail_p -- Q --> a.
         Proof. move=> I.
-          destruct p as [[a' p] P]; move: P I.
+          destruct p as [[a'|a' p] P]; move: P I.
           rewrite /type2tail/type2deTail=>/=P I.
-          destruct I.
+          by contradict I.
+          rewrite /type2tail/type2deTail=>/=P I.
+          rewrite/predicate/seq1.rest/seq1.tail -I in P.
           by apply (rwP andP) in P as [P _].
         Qed.
 
         Definition path_behead_proof {a L} (p : type)
-          (I : a::L = \rest_p) : predicate (a,L).
+          (I : a::L = \rest_p) : predicate (to_seq1 a L).
         Proof.
-          destruct p as [[a' p] P]; move: P I.
+          destruct p as [[a'|a' p] P]; move: P I.
           rewrite /type2tail/type2deTail=>/=P I.
-          destruct I.
+          by contradict I.
+          rewrite /type2tail/type2deTail=>/=P I.
+          rewrite/predicate/seq1.rest/seq1.tail -I in P.
+          rewrite/predicate tail_of rest_of.
           by apply (rwP andP) in P as [_ P].
         Qed.
 
@@ -133,9 +195,13 @@ Module NTPath.
           rewrite/predicate -I in P.
           by apply (rwP andP) in P as [P _].
           } {
-          destruct p as [[a' p] P]; move: P I=>/=P I.
-          rewrite -I in P; apply (rwP andP) in P as [P P1].
-          by rewrite -I=>/=; apply (IHL a \mkPath(a0-->(a::L)|P1)). }
+          destruct p as [[a'|a' p] P]; move: P I=>/=P I.
+          by contradict I.
+          rewrite/predicate/seq1.rest/seq1.tail -I in P.
+          apply (rwP andP) in P as [P P1].
+          rewrite -I=>/=.
+          rewrite /type2deTail/type2tail in IHL.
+          apply (IHL a \mkPath(a0-->(a::L)|P1) _). }
         Qed.
       End SizeTwoPlusFacts.
 

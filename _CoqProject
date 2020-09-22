@@ -1,10 +1,5 @@
 -R . src
 
-theories/Quivers/Quiver.v
-theories/Quivers/ntPath.v
-theories/Quivers/ntPathPairs.v
-theories/Quivers/Path.v
-
 theories/Algebra/Classes.v
 theories/Algebra/Submodule.v
 theories/Algebra/Quotient.v
@@ -13,10 +8,16 @@ theories/Algebra/Algebras.v
 theories/Algebra/DirectSum.v
 theories/Algebra/Basis.v
 theories/Algebra/FreeModules.v
-theories/Algebra/FormalLC.v
 theories/Algebra/Dimension.v
+theories/Algebra/FormalLC.v
+theories/Algebra/Matrices.v
 theories/Algebra/ChainComplex.v
 theories/Algebra/Projective.v
+
+theories/Quivers/Quiver.v
+theories/Quivers/ntPath.v
+theories/Quivers/ntPathPairs.v
+theories/Quivers/Path.v
 
 #theories/Algebra/Tensor.v
 #theories/Algebra/Hom.v

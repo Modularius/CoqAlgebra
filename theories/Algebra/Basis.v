@@ -358,8 +358,38 @@ Module lmodFinSet.
     Definition Build {T : finType} (elem : T -> M) (I : injective elem) (ND : non_degenerate elem)
     := Pack (Class (lmodSet.Build I ND)).
 
-    Definition to_set (T : type)
+    Section Lemmas.
+    Variable (T : type).
+    Definition to_set
     := lmodSet.Pack (base (class_of T)).
+
+    Variable (n : nat) (K : n = size (enum (sort T))).
+    Definition to_ord
+      : sort T -> 'I_n :=
+    eq_rect_r (fun n : nat => sort T -> 'I_n) 
+      (eq_rect #|sort T| (fun n : nat => sort T -> 'I_n)
+        enum_rank (size (enum (sort T))) (cardT (sort T))) K.
+
+    Definition from_ord
+      : 'I_n -> sort T :=
+    eq_rect_r (fun n : nat => 'I_n -> sort T) 
+      (eq_rect #|sort T| (fun n : nat => 'I_n -> sort T)
+        enum_val (size (enum (sort T))) (cardT (sort T))) K.
+
+    Lemma tofrom_ordK : cancel to_ord from_ord.
+    Proof.
+      rewrite/to_ord/from_ord/eq_rect_r/eq_rect.
+      destruct (cardT (sort T)), (Logic.eq_sym K)=>x.
+      by rewrite enum_rankK.
+    Qed.
+
+    Lemma fromto_ordK : cancel from_ord to_ord.
+    Proof.
+      rewrite/to_ord/from_ord/eq_rect_r/eq_rect.
+      destruct (cardT (sort T)), (Logic.eq_sym K)=>x.
+      by rewrite enum_valK.
+    Qed.
+    End Lemmas.
 (*
     Definition BuildSelfSubSet (F : type) : lmodFinSubSetType (to_set F)
     := @lmodFinSubSet.Pack _ _ (to_set F) (sort F) id (fun (x1 x2 : (sort F)) => id).*)

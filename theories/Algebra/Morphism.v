@@ -114,7 +114,7 @@ Export linCoimage.Exports.
 Module linID.
   Section Def.
     Variable (R : ringType) (M : lmodType R).
-    Definition map := GRing.idfun_linear M.
+    Definition map : {linear M -> M} := locked (GRing.idfun_linear M).
   End Def.
 End linID.
 
@@ -123,9 +123,13 @@ Module linConcat.
     Variable (R : ringType) (A B C : lmodType R)
     (f : {linear A -> B}) (g : {linear B -> C}).
     
-    Definition map : {linear A -> C} := GRing.comp_linear g f.
+    Definition map : {linear A -> C} := locked (GRing.comp_linear g f).
+    Lemma chain x : g (f x) = (map x).
+    Proof. by rewrite /map -(lock (GRing.comp_linear _ _)). Qed.
   End Def.
 End linConcat.
+Notation " g \oLin f " := (linConcat.map f g) (at level 36, right associativity).
+Notation linConChain := (linConcat.chain).
 
 
 Module linZero.
@@ -135,7 +139,7 @@ Module linZero.
     Lemma lmod_zero_lin : linear (fun _ : M1 => @GRing.zero M2).
     Proof. by rewrite /(linear _)=>a x y; rewrite GRing.scaler0 GRing.addr0. Qed.
 
-    Definition map := Linear lmod_zero_lin.
+    Definition map : {linear M1 -> M2} := locked (Linear lmod_zero_lin).
   End Def.
 End linZero.
 
@@ -194,5 +198,81 @@ Module linIsom.
     Coercion toSurj : type >-> linSurj.type.
   End Exports.
 End linIsom.
+
+
+Module lmodIsom.
+  Section Def.
+    Variable (R : ringType) (M1 M2 : lmodType R).
+    Record mixin  (f : M1 -> M2)
+                  (g : M2 -> M1)
+   := Mixin {
+      isom_lin : linear f;
+      isom_inv_lin : linear g;
+      isomfK : cancel f g;
+      isomKf : cancel g f;
+      }.
+    Record type := Pack { isom_map : _ ; isom_mapI : _;
+                          class_of : mixin isom_map isom_mapI;
+                          isom_linmap : {linear M1 -> M2} := (Linear (isom_lin class_of));
+                          isom_linmapI : {linear M2 -> M1} := (Linear (isom_inv_lin class_of));
+    }.
+    Definition Build (f : M1 -> M2)
+                     (g : M2 -> M1)
+                     (flin : linear f)
+                     (glin : linear g)
+                     (fg : cancel f g)
+                     (gf : cancel g f)
+                      := Pack (Mixin flin glin fg gf).
+
+    Program Definition BuildPack (f : M1 -> M2) (g : M2 -> M1)
+                      (fglin : linear f /\ linear g)
+                      (fg_gf : cancel f g /\ cancel g f)
+                      := Pack (@Mixin f g _ _ _ _).
+
+    Lemma isomlK (p : type) : cancel (isom_linmap p) (isom_linmapI p).
+    Proof. rewrite /isom_linmap/isom_linmapI=>/=.
+    apply (isomfK (class_of p)). Qed.
+    
+    Lemma isomKl (p : type) : cancel (isom_linmapI p) (isom_linmap p).
+    Proof. rewrite /isom_linmap/isom_linmapI=>/=.
+    apply (isomKf (class_of p)). Qed.
+  End Def.
+
+  Include GRing.
+  Section Concat.
+    Variable (R : ringType) (M1 M2 M3 : lmodType R).
+    Variable (I1 : lmodIsom.type M1 M2) (I2 : lmodIsom.type M2 M3).
+    Local Coercion lmodIsom.class_of : type >-> mixin.
+    Program Definition Concat : lmodIsom.type M1 M3
+     := @Build _ _ _
+          (isom_linmap I2 \o isom_linmap I1)
+          (isom_linmapI I1 \o isom_linmapI I2)
+          _ _ _ _.
+    Next Obligation.
+    apply (linearPZ (comp_linear (isom_linmap I2) (isom_linmap I1))).
+    Qed. Next Obligation.
+    apply (linearPZ (comp_linear (isom_linmapI I1) (isom_linmapI I2))).
+    Qed. Next Obligation.
+    rewrite /isom_linmap/isom_linmapI=>/=.
+    by rewrite/comp=>x; rewrite (isomfK I2) (isomfK I1).
+    Qed. Next Obligation.
+    rewrite /isom_linmap/isom_linmapI=>/=.
+    by rewrite/comp=>x; rewrite (isomKf I1) (isomKf I2).
+    Qed.
+  End Concat.
+End lmodIsom.
+Notation lmodIsomType := (lmodIsom.type).
+Notation lmodIsomBuild := (lmodIsom.Build).
+Notation lmodIsomBuildPack := (lmodIsom.BuildPack).
+Notation lmodIsomConcat := (lmodIsom.Concat).
+Notation isom_linmap := (lmodIsom.isom_linmap).
+Notation isom_linmapI := (lmodIsom.isom_linmapI).
+Notation isomfK := (lmodIsom.isomfK).
+Notation isomKf := (lmodIsom.isomKf).
+Notation isomlK := (lmodIsom.isomlK).
+Notation isomKl := (lmodIsom.isomKl).
+Coercion lmodIsom.class_of : lmodIsomType >-> lmodIsom.mixin.
+Coercion lmodIsom.isom_linmap : lmodIsomType >-> GRing.Linear.map.
+Notation "inv( f )" := (isom_linmapI f) (at level 36, right associativity).
 
 Close Scope ring_scope.
