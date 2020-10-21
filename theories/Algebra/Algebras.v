@@ -74,4 +74,5 @@ Module lmods.
 
   End Def.
 End lmods.
+Notation ringModType := lmods.ringMod.
 Close Scope ring_scope.

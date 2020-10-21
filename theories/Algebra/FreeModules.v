@@ -1,9 +1,55 @@
-(* math-algebra (c) 2020 Dr Daniel Kirk *)
+(* math-algebra (c) 2020 Dr Daniel Kirk                                       *)
+(******************************************************************************)
+(* Let R : ringType                                                           *)
+(******************************************************************************)
+(* freeLmodType R == a record consisting of an lmodType R 'sort' and          *)
+(*                   a (lmodBasisType sort)                                   *)
+(*                   M : freeLmodType M coerces to its underlying lmodType    *)
+(******************************************************************************)
+(* Let M : freeLmodType R                                                     *)
+(* basis M             == underlying lmodBasisType object of M                *)
+(* \freeBasisCoef_(b) x == \basisProj_b^(basis M) x                           *)
+(******************************************************************************)
+(* fdFreeLmodType R == a record consisting of an lmodType R 'sort' and        *)
+(*                     a (lmodFinBasisType sort)                              *)
+(*                     M : fdFreeLmodType M coerces to its underlying         *)
+(*                     lmodType but not to freeLmodType                       *)
+(******************************************************************************)
+(* Let M : fdFreeLmodType R                                                   *)
+(* fdBasis M             == underlying lmodFinBasisType object of M           *)
+(* to_arb M              == converts to underlying lmodBasisType              *)
+(* \fdFreeBasisCoef_(b) x == \finBasisProj_b^(fdBasis M) x                    *)
+(******************************************************************************)
+(*        M1 \foplus M2  == the fdFreeLmodType given by M1 \oplus M2 and      *)
+(*                          Pair.basis M1 M2                                  *)
+(*                          Pair.basis M1 M2 == finBasisType with index-set   *)
+(*                          (fdBasis M1) + (fdBasis M2) and                   *)
+(*                          elem x := match x with                            *)
+(*                            |inl y => (B1 y, 0)                             *)
+(*                            |inr y => (0, B2 y)                             *)
+(*                          end                                               *)
+(* \fbigoplus_(f in L) I == the fdFreeLmodType given by \bigoplus_(f in L) I  *)
+(*                          and Seq.basis I L                                 *)
+(*                          Seq.basis I nil has                               *)
+(*                            index-set == null_finType                       *)
+(*                            elem x    == tt                                 *)
+(*                          Seq.basis I a::L has                              *)
+(*                            index-set ==                                    *)
+(*                              Pair.basis (fdBasis (I a)) (Seq.basis I L)    *)
+(*                            elem x    ==  match x with                      *)
+(*                                          |inl y => (fdBasis (I a) y, 0)    *)
+(*                                          |inr y => (0, Seq.basis I L y)    *)
+(*                                          end                               *)
+(*       \fbigoplus_F I == equivalent to \fbigoplus_(f : F) I                 *)
+(*         \fbigoplus I == equivalent to \fbigoplus_(f : F) I                 *)
+(*                         where I : F -> lmodType R                          *)
+(******************************************************************************)
 
 Require Import Coq.Program.Tactics.
+Require Import Coq.Logic.ProofIrrelevance.
 Require Import Coq.Logic.FunctionalExtensionality.
 From mathcomp Require Import ssreflect ssrfun seq.
-From mathcomp Require Import eqtype choice fintype path bigop finfun.
+From mathcomp Require Import eqtype choice fintype path bigop finfun matrix.
 
 Set Warnings "-parsing". (* Some weird bug in ssrbool throws out parsing warnings*)
   From mathcomp Require Import ssrbool ssrnat.
@@ -20,6 +66,11 @@ Open Scope ring_scope.
 
 Include GRing.
 
+Open Scope lmod_scope.
+(*
+  Definitions of the Free and Finite Dimensional Free Module Types
+    *)
+
 Module freeLmod.
   Section Def.
     Variable (R : ringType).
@@ -28,16 +79,14 @@ Module freeLmod.
     Definition Build {M : lmodType R} (B : lmodBasisType M) := Pack (Mixin B).
   End Def.
 
-  Section Results.
-
-  End Results.
-
   Module Exports.
+  Coercion sort : type >-> lmodType.
+  Coercion class_of : type >-> mixin.
     Notation freeLmodType := type.
     Notation basis := basis.
     Notation freeLmodPack := Build.
-    Coercion sort : type >-> lmodType.
-    Coercion class_of : type >-> mixin.
+    Notation coef := (fun (R : ringType) (M : type R) b => \basisProj_b^(basis M)).
+    Notation "\freeBasisCoef_( b ) x" := (@coef _ _ b x) (at level 36) : lmod_scope.
   End Exports.
 End freeLmod.
 Export freeLmod.Exports.
@@ -54,52 +103,29 @@ Module fdFreeLmod.
     Definition to_arb (F : type) := freeLmod.Build (lmodFinBasis.to_lmodBasis (fdBasis (class_of F))).
   End Def.
 
-  Section Results.
-
-  End Results.
 
   Module Exports.
+    Coercion sort : type >-> lmodType.
+    Coercion class_of : type >-> mixin.
     Notation fdFreeLmodType := type.
     Notation fdBasis := fdBasis.
     Notation fdFreeLmodPack := Build.
-    Coercion sort : type >-> lmodType.
-    Coercion class_of : type >-> mixin.
+
+    Notation coef := (fun (R : ringType) (M : type R) b => \finBasisProj_b^(fdBasis M)).
+    Notation "\fdFreeBasisCoef_( b ) x" := (@coef _ _ b x) (at level 36) : lmod_scope.
   End Exports.
 End fdFreeLmod.
 Export fdFreeLmod.Exports.
 
 
 
-Reserved Notation "\fbigoplus_ i F"
-  (at level 36, F at level 36, i at level 0,
-    right associativity,
-          format "'[' \fbigoplus_ i '/ ' F ']'").
-
-Reserved Notation "\fbigoplus F"
-  (at level 36, F at level 36,
-    right associativity,
-          format "'[' \fbigoplus F ']'").
-
-Reserved Notation "\fbigoplus_ ( i <- r ) F"
-  (at level 36, F at level 36, i, r at level 50,
-          format "'[' \fbigoplus_ ( i <- r ) '/ ' F ']'").
-
-Reserved Notation "\fbigoplus_ ( i : t ) F"
-  (at level 36, F at level 36, i at level 50,
-          format "'[' \fbigoplus_ ( i : t ) '/ ' F ']'").
-
-Reserved Notation "\fbigoplus_ ( i 'in' A ) F"
-  (at level 36, F at level 36, i, A at level 50,
-          format "'[' \fbigoplus_ ( i 'in' A ) '/ ' F ']'").
-
-Reserved Notation "\fproj^( I )_ f "
-(at level 36, f at level 36, I at level 36,
-  format "'[' \fproj^( I )_ f ']'").
-
-Reserved Notation "\finj^( I )_ f "
-(at level 36, f at level 36, I at level 36,
-  format "'[' \finj^( I )_ f ']'").
-
+(*
+  Free Module Types of:
+    the trivial modules (null basis)
+    the ring as a module over itself (unit basis)
+    matrix modules over a ring
+    polynomial modules over a ring
+    *)
 
 Module fdFreeLmodNull.
   Section Def.
@@ -114,36 +140,232 @@ Module fdFreeLmodNull.
     Proof. by move=>x; destruct x. Qed.
 
     Definition null_set := lmodFinSet.Build null_injective null_nondeg.
+
     Lemma null_li : li null_set.
     Proof. move=>c H b; case b. Qed.
 
-    Lemma fn_zero_lin : linear_for *%R (fun _ : (lmodZero.type R) => 0 : R).
-    Proof. by move => r x y; rewrite mulr0 addr0. Qed.
-
-    Lemma null_orth : orthonormP (B:=null_set) (fun _ : null_set => Linear fn_zero_lin).
-    Proof. rewrite/orthonormP=>m1 m2; case m1, m2. Qed.
-
-    Lemma null_basis : lmodBasis.basisP (B:=null_set) (fun _ : null_set => Linear fn_zero_lin).
-    Proof. rewrite/lmodBasis.basisP=>m1 m2;
-    by apply (iffP idP)=>H//=. Qed.
-
-    Definition null_basis_set := lmodBasis.Build (O := null_orth) null_basis.
-
     Lemma null_sp : spanning null_set.
-    Proof. move=>m; rewrite/lmodFinBasis.spanProj; refine(exist _ (fun x : null_set => match x with end) _).
-      rewrite /lmodFinBasis.spanProp=>/=.
-      rewrite /nullBasis_fn=>/=.
-      by rewrite big_pred0.
+    Proof. move=>m; rewrite/lmodFinBasis.spanProj;
+      refine(exist _ (fun x : null_set => match x with end) _).
+      by rewrite /lmodFinBasis.spanProp/nullBasis_fn big_pred0.
+    Qed.
+    Definition basis := lmodFinBasis.Build null_li null_sp.
+  End Def.
+  Module Exports.
+    Canonical null_fdFreeLmod (R : ringType) := Eval hnf in @fdFreeLmodPack R _ (fdFreeLmodNull.basis R).
+  End Exports.
+End fdFreeLmodNull.
+Export fdFreeLmodNull.Exports.
+
+
+
+
+
+Module freeRingModule.
+  Section Def.
+    Variable (R : ringType).
+    Definition fn := fun _ : unit_eqType => (GRing.one R) : (ringModType R).
+    Lemma fn_injective : injective fn.
+      Proof. by move=>x y; destruct x, y. Qed.
+    Lemma fn_nondegen : non_degenerate fn.
+      Proof. rewrite /fn=>x; apply GRing.oner_neq0. Qed.
+
+    Definition bset := lmodFinSet.Build fn_injective fn_nondegen.
+
+    Lemma bset_li : li bset.
+    Proof. move=>/=c H b; move: H.
+      rewrite -big_enum big_enum_cond/fn(big_pred1 tt)
+      /(GRing.scale _)=>/=;by [rewrite GRing.mulr1; case b|
+      rewrite /pred1=>x; case x].
     Qed.
 
-    Lemma li_sp : li null_set.
-    Proof. rewrite/li=>c H b/=.
-    destruct b. Qed.
+    Lemma bset_spanning : spanning bset.
+    Proof. move=>/=x. rewrite /lmodFinBasis.spanProj.
+      refine (exist _ (fun _ => linID.map _) _).
+      rewrite /lmodFinBasis.spanProp -big_enum big_enum_cond/fn
+      (big_pred1 tt) /(scale _); unlock linID.map=>/=;
+      by [rewrite GRing.mulr1|rewrite /pred1=>x'; case x'].
+    Qed.
 
-    Definition Basis := lmodFinBasis.Build null_li null_sp.
+    Definition basis : lmodFinBasisType (ringModType R) := lmodFinBasis.Build bset_li bset_spanning.
   End Def.
-End fdFreeLmodNull.
-Definition null_fdFreeLmod (R : ringType) := fdFreeLmodPack (fdFreeLmodNull.Basis R).
+  Module Exports.
+    Canonical unit_fdFreeLmod (R : ringType) := Eval hnf in @fdFreeLmodPack R (ringModType R) (freeRingModule.basis R).
+  End Exports.
+End freeRingModule.
+Export freeRingModule.Exports.
+
+Module freeLmodMatrix.
+  Section Def.
+    Variable (R : ringType) (m n : nat).
+    Definition fn pp := @delta_mx R m n pp.1 pp.2.
+    Lemma fn_injective : injective fn.
+      Proof. rewrite/fn=>x y; rewrite /delta_mx -matrixP/eqrel=>H.
+        assert(H := H y.1 y.2).
+        rewrite !mxE !eq_refl in H; simpl in H.
+        have: (y.1 == x.1) by 
+          case(y.1 == x.1) as []eqn:E=>//; move: H;
+          rewrite !E !(rwP eqP) eq_sym oner_eq0.
+        have: (y.2 == x.2) by
+          case(y.2 == x.2) as []eqn:E=>//; move: H;
+          rewrite E andbC !(rwP eqP) eq_sym oner_eq0.
+        destruct x, y; rewrite -!(rwP eqP)=>/=H1 H2.
+        by rewrite H1 H2.
+      Qed.
+
+      Lemma fn_nondegen : non_degenerate fn.
+      Proof. rewrite /fn=>x; rewrite /delta_mx -(rwP negP)-(rwP eqP)-matrixP=>H.
+        assert(H := H x.1 x.2); move: H.
+        by rewrite !mxE !eq_refl (rwP eqP) oner_eq0.
+      Qed.
+
+      Definition fn_bset := lmodFinSet.Build fn_injective fn_nondegen.
+
+      Lemma fn_li : li fn_bset.
+      Proof. move=>/=c H b.
+        case (c b == 0) as []eqn:E=>//.
+      move: H=>/=.
+      pose(C := \matrix_(i,j) c(i,j) ).
+      have H : forall i j, C i j = c(i,j)
+      by rewrite/C=>i j; rewrite mxE.
+      rewrite (eq_bigr (fun f => C f.1 f.2 *: delta_mx f.1 f.2) _); [|move=>f _; by rewrite H; destruct f].
+      rewrite -big_enum enumT (unlock finEnum_unlock).
+      rewrite big_allpairs=>/=.
+      rewrite big_enum; under eq_bigr do rewrite big_enum=>/=.
+      rewrite big_enum_val; under eq_bigr do rewrite big_enum_val=>/=.
+      move=>V.
+
+      have: \sum_(i1 < m) \sum_(i2 < n) C i1 i2 *: delta_mx i1 i2 == 0.
+      admit.
+      rewrite -matrix_sum_delta -(rwP eqP) -matrixP/eqrel=>P.
+      assert(PP := P b.1 b.2).
+      unfold C in PP.
+      rewrite mxE in PP.
+      destruct b.
+      by rewrite PP mxE eq_refl in E.
+      Admitted.
+      (*rewrite big_enum; under eq_bigr do rewrite big_enum=>/=.*)
+
+      Definition elemFun_raw : fn_bset -> 'M_(m,n) -> R
+      := fun ij => fun A : 'M_(m,n) => A ij.1 ij.2.
+      Lemma elemFun_sca (b : fn_bset) : scalar (elemFun_raw b).
+      Proof. rewrite/elemFun_raw=>r x y.
+        by rewrite mxE mxE. Qed.
+
+      Definition elemFun : fn_bset -> {scalar 'M[R]_(m,n)}
+       := fun b => Linear (elemFun_sca b).
+      
+    Lemma fn_spanning : spanning fn_bset.
+    Proof. move=>/=A. rewrite /lmodFinBasis.spanProj.
+      refine (exist _ elemFun _).
+      by rewrite /lmodFinBasis.spanProp/elemFun/elemFun_raw/fn
+      {2}(matrix_sum_delta A) -big_enum enumT (unlock finEnum_unlock) big_allpairs big_enum
+      (eq_bigr (fun i : 'I_m => \sum_(j < n) A i j *: delta_mx i j) _)
+      =>[|i H]; rewrite -big_enum.
+    Qed.
+
+    Definition basis : lmodFinBasisType (matrix_lmodType R m n) := lmodFinBasis.Build fn_li fn_spanning.
+  End Def.
+  Module Exports.
+    Canonical Structure fdFreeLmod_matrix (R : ringType) (m n : nat) := Eval hnf in fdFreeLmodPack (basis R m n).
+  End Exports.
+End freeLmodMatrix.
+Export freeLmodMatrix.Exports.
+
+Section Morphisms.
+  Variable (R : ringType).
+
+  Section VectorConversion.
+   Variable (M : fdFreeLmodType R) (n : nat) (E : n = size (enum (to_FinType (fdBasis M)))).
+
+    Definition to_row_raw : M -> 'rV[R]_n  := fun x =>
+    \row_(i < n)
+      \fdFreeBasisCoef_(lmodFinSet.from_ord E i) x.
+
+    Definition from_row_raw : 'rV[R]_n -> M  := fun x =>
+      \sum_(b : fdBasis M)
+        x (Ordinal (ltn0Sn 0)) (lmodFinSet.to_ord E b) *: (fdBasis M b).
+
+    Lemma from_row_lin : linear from_row_raw.
+    Proof. rewrite/from_row_raw=>r x y.
+    rewrite scaler_sumr -big_split.
+    apply eq_bigr=>i _.
+    by rewrite mxE mxE scalerDl scalerA. Qed.
+
+    Lemma to_row_lin : linear to_row_raw.
+    Proof. rewrite/to_row_raw=>r x y.
+      rewrite -matrixP /eqrel=>i j.
+    by rewrite !mxE linearP. Qed.
+
+    Definition from_row := Linear from_row_lin.
+    Definition to_row := Linear to_row_lin.
+    
+    Lemma from_rowK : cancel to_row from_row.
+    Proof. simpl; rewrite/from_row_raw/to_row_raw=>x.
+      rewrite -{2}(lmodFinBasis.coefP (fdBasis M) x).
+      apply eq_bigr=> b _.
+      by rewrite mxE lmodFinSet.tofrom_ordK.
+    Qed.
+
+    Lemma to_rowK : cancel from_row to_row.
+    Proof. simpl; rewrite/from_row_raw/to_row_raw=>x.
+      rewrite -matrixP /eqrel=>i j.
+      rewrite mxE linear_sum.
+      have H : (forall (i0 : fdBasis M) (_ : true),
+        (\finBasisProj_(lmodFinSet.from_ord E j)^(fdBasis M))
+        ((x (Ordinal (ltn0Sn 0)) (lmodFinSet.to_ord E i0))
+        *: (fdBasis M i0)) =
+        (if i0 == lmodFinSet.from_ord (T:=fdBasis M) E j
+          then x (Ordinal (ltn0Sn 0)) j
+          else 0)) by
+      move=>i0 _;
+      case(i0 == lmodFinSet.from_ord E j) as []eqn:E2;rewrite scalarZ;[
+      apply (rwP eqP) in E2;
+      by rewrite {1}E2 lmodFinSet.fromto_ordK
+      (lmodFinBasis.coefO (lmodFinSet.from_ord E j) i0) E2 eq_refl mulr1 |
+      by rewrite (lmodFinBasis.coefO (lmodFinSet.from_ord E j) i0) eq_sym E2 mulr0].
+      rewrite (eq_bigr _ H) -big_mkcond big_pred1_eq.
+      destruct i.
+      by induction m; [rewrite (proof_irrelevance _ (ltn0Sn 0) i) | inversion i].
+    Qed.
+  End VectorConversion.
+
+  Section MatrixConversion.
+    Variable (M N : fdFreeLmodType R)
+    (m : nat) (Em : m = size (enum (to_FinType (fdBasis M))))
+    (n : nat) (En : n = size (enum (to_FinType (fdBasis N)))).
+
+    Definition to_map (f : {linear M -> N}) : {linear 'rV[R]_m -> 'rV[R]_n}
+     := (to_row En) \oLin f \oLin (from_row Em).
+
+    Definition from_map (f : {linear 'rV[R]_m -> 'rV[R]_n}) : {linear M -> N}
+      := (from_row En) \oLin f \oLin (to_row Em).
+
+    Lemma from_mapK : cancel to_map from_map.
+    Proof. rewrite/from_map/to_map=>/=f.
+      rewrite !eq_lin.
+      apply functional_extensionality=>x.
+      by rewrite -!linCompChain !from_rowK.
+    Qed.
+    
+    Lemma to_mapK : cancel from_map to_map.
+    Proof. rewrite/from_map/to_map=>f.
+      rewrite !eq_lin.
+      apply functional_extensionality=>x.
+      by rewrite -!linCompChain !to_rowK.
+    Qed.
+  End MatrixConversion.
+End Morphisms.
+
+
+
+
+
+(*
+
+  Direct Sums of Free Modules
+  
+    *)
 
 Module dsFdFreeLmod.
   Module Pair.
@@ -231,10 +453,10 @@ Module dsFdFreeLmod.
         all:by rewrite /(scale _)=>/=; rewrite /scale_pair scaler0.
       Qed.
 
-      Definition Basis : lmodFinBasisType (pair_lmodType M1 M2) := lmodFinBasis.Build pair_li pair_sp.
+      Definition basis : lmodFinBasisType (pair_lmodType M1 M2) := lmodFinBasis.Build pair_li pair_sp.
     End Def.
 
-    Definition fdFreeLmod (R : ringType) (m1 m2 : fdFreeLmodType R) := fdFreeLmodPack (Basis (fdBasis m1) (fdBasis m2)).
+    Definition fdFreeLmod (R : ringType) (m1 m2 : fdFreeLmodType R) := fdFreeLmodPack (basis (fdBasis m1) (fdBasis m2)).
     Section Results.
     Variable (R : ringType).
     Variable (M1 M2 : fdFreeLmodType R).
@@ -246,151 +468,170 @@ Module dsFdFreeLmod.
     End Results.
 
     Module Exports.
-      Infix "\foplus" := (fdFreeLmod) (at level 36).
+      Canonical fdFreeLmod.
     End Exports.
   End Pair.
   Export Pair.Exports.
 
   Module Seq.
     Section Def.
-      Variable (R : ringType).
-      Fixpoint type (L : seq (fdFreeLmodType R)) : fdFreeLmodType R :=
+      Variable (R : ringType) (T : eqType) (I : T -> (fdFreeLmodType R)).
+
+      Fixpoint iterSum (L : seq T) : lmodFinBasisType (dsLmod.Seq.DS  (fun x0 : T => I x0) L)
+       := match L with
+      |nil => fdBasis (null_fdFreeLmod R) : lmodFinBasisType (dsLmod.Seq.DS (fun x : T => I x) [::])
+      |a::L' => Pair.basis (fdBasis (I a)) (iterSum L') : lmodFinBasisType (dsLmod.Seq.DS  (fun x0 : T => I x0) (a::L'))
+      end.
+
+      Fixpoint fn (L : seq T) : (iterSum L) -> (dsLmod.Seq.DS I L) := 
         match L with
-        |nil => null_fdFreeLmod R
-        |a::l => a \foplus (type l)
+          |nil => fun=> (tt : dsLmod.Seq.DS (fun x : T => I x) [::])
+          |a::L' => fun x : iterSum (a::L') => match x with
+            |inl y => (fdBasis (I a) y, 0)
+            |inr y => (0, @fn L' y) : dsLmod.Seq.DS  (fun x0 : T => I x0) (a::L')
+          end
         end.
+
+      Section Seq.
+        Variable (L : seq T).
+        Lemma fn_injective : injective (@fn L).
+        Proof.
+          induction L=>x y=>//.
+          case x as [a1|a1]eqn:E1, y as [a2|a2]eqn:E2.
+          rewrite (rwP eqP) xpair_eqE eq_refl andbT -(rwP eqP)=>H.
+          by rewrite (@typeIsInjective _ _ (fdBasis (I a)) _ _ H).
+          rewrite (rwP eqP) xpair_eqE -(rwP andP)=>H.
+          destruct H as [H _].
+          contradict H; rewrite (rwP negP);
+          apply (@typeIsNonDegenerate _ _ (fdBasis (I a)) a1).
+          rewrite (rwP eqP) xpair_eqE -(rwP andP)=>H.
+          destruct H as [H _];
+          contradict H; rewrite eq_sym (rwP negP);
+          apply (@typeIsNonDegenerate _ _ (fdBasis (I a)) a2).
+          rewrite (rwP eqP) xpair_eqE eq_refl andTb -(rwP eqP)=>H.
+          by rewrite (IHl _ _ H).
+        Qed.
+        
+        Lemma fn_nondeg : non_degenerate (@fn L).
+        Proof.
+          induction L=>x//.
+          case x as [a1|a1]eqn:E.
+          rewrite /fn.
+          (have: ~~(fdBasis (I a) a1 == 0)
+          by apply (@typeIsNonDegenerate _ _ (fdBasis (I a)) a1))=>/=H.
+          rewrite /eq_op -(rwP nandP)=>/=.
+          rewrite H eq_refl.
+          by left.
+          (have: ~~(fn a1 == 0)
+          by apply (IHl a1))=>H/=.
+          rewrite /eq_op -(rwP nandP)/fn eq_refl H.
+          by right.
+        Qed.
+
+        Definition bset := lmodFinSet.Build fn_injective fn_nondeg.
+      End Seq.
+
+      Section Seq.
+        Variable (L : seq T).
+        Lemma seq_li : li (bset L).
+        Proof.
+          induction L=>//.
+          move=>c H b.
+          rewrite big_sumType in H; simpl in H.
+          move:H.
+          under eq_bigr do rewrite /(GRing.scale _)=>/=;
+          under eq_bigr do rewrite /scale_pair scaler0=>/=;
+          rewrite addrC.
+          under eq_bigr do rewrite /(GRing.scale _)=>/=;
+          under eq_bigr do rewrite /scale_pair scaler0=>/=;
+          rewrite addrC Pair.pair_zero. move =>[H1 H2].
+          case b as []eqn:E;[ apply (lmodFinBasis.li_ax (fdBasis (I a)) H1 s) | apply (IHl _ H2 s)].
+        Qed.
+
+        Lemma seq_sp : spanning (bset L).
+        Proof.
+          induction L=>m; [apply (fdFreeLmodNull.null_sp m)|].
+          destruct (typeIsSpanning (fdBasis (I a)) m.1) as [p1 H1], (IHl m.2) as [p2 H2].
+
+          refine (exist _ (fun p => Linear (Pair.coefJoin_lin  p p1 p2)) _).
+          rewrite /lmodFinBasis.spanProp big_sumType=>/=;
+          under eq_bigr do rewrite /(GRing.scale _)=>/=;
+          under eq_bigr do rewrite /scale_pair scaler0=>/=;
+          rewrite addrC;
+          under eq_bigr do rewrite /(GRing.scale _)=>/=;
+          under eq_bigr do rewrite /scale_pair scaler0=>/=;
+          rewrite addrC Pair.pair_zero; split; [apply H1 | apply H2].
+        Qed.
+
+        Definition basis : lmodFinBasisType (dsLmod.Seq.DS I L) := lmodFinBasis.Build seq_li seq_sp.
+      End Seq.
     End Def.
-    Definition fdFreeLmod (R : ringType) (L : seq (fdFreeLmodType R)) := type L.
+
+    Definition fdFreeLmod (R : ringType) (T : eqType) (I : T -> (fdFreeLmodType R)) (L : seq T) := fdFreeLmodPack (basis I L).
+    
+    Module Exports.
+      Canonical fdFreeLmod.
+    End Exports.
   End Seq.
 
   Section Def.
-    Variable (R : ringType).
-    Variable (F : finType) (I : F -> (fdFreeLmodType R)).
-    Definition type := Seq.fdFreeLmod (map I (enum F)).
-    Lemma is_ds
-      : \bigoplus_(f : F)(fun f => fdFreeLmod.sort (I f)) = fdFreeLmod.sort type.
-    Proof. rewrite /type/dsLmod.DS.
-      by induction (enum F)=>//=; rewrite IHl.
-    Qed.
-
-    Definition to_ds_raw : type -> \bigoplus I.
-    Proof. move=> x.
-    by rewrite is_ds. Defined.
-
-    Lemma to_ds_lin : linear to_ds_raw.
-    Proof. rewrite /to_ds_raw/eq_rect_r/eq_rect=>r x y.
-      by destruct (Logic.eq_sym is_ds). Qed.
-    Definition to_ds := Linear to_ds_lin.
-
-    Definition proj_raw (f : F) (x : type) : I f
-    := (\proj_f^(I) \oLin to_ds) x.
-
-    Lemma proj_lin (f : F) : linear (proj_raw f).
-    Proof. rewrite/proj_raw=> r x y; by rewrite !GRing.linearPZ. Qed.
-
-    Definition from_ds_raw : \bigoplus I -> type.
-    Proof. move=> x. by rewrite is_ds in x. Defined.
-
-    Lemma from_ds_lin : linear from_ds_raw.
-    Proof. rewrite /from_ds_raw=>r x y; by destruct (is_ds). Qed.
-    Definition from_ds := Linear from_ds_lin.
-
-    Lemma to_from_dsK : cancel from_ds to_ds.
-    Proof. simpl; rewrite/cancel/to_ds_raw/from_ds_raw=>x/=; by case (is_ds). Qed.
-
-    Lemma from_to_dsK : cancel to_ds from_ds.
-    Proof. simpl; rewrite/cancel/to_ds_raw/from_ds_raw=>x/=; by destruct (is_ds). Qed.
-
-    Definition inj_raw (f : F) (x : I f) : type
-    := (from_ds \oLin \inj_f^(I)) x.
-
-    Lemma inj_lin (f : F) : linear (@inj_raw f).
-    Proof. rewrite/inj_raw=> r x y; by rewrite !linearPZ. Qed.
-
-    Definition proj (f : F) : {linear type -> I f} := Linear (proj_lin f).
-    Definition inj (f : F) : {linear I f -> type} := Linear (@inj_lin f).
+    Variable (R : ringType) (F : finType) (I : F -> (fdFreeLmodType R)).
+    Definition type := Seq.fdFreeLmod I (enum F).
   End Def.
-  Section Results.
-    Variable (R : ringType) (F : finType) (I : F -> fdFreeLmodType R).
+  Export Seq.Exports.
+End dsFdFreeLmod.
 
-    Lemma proj_injK (f : F) x : proj I f (inj I f x) = x.
-    Proof. by simpl; rewrite /proj_raw/inj_raw -linConChain-linConChain
-    to_from_dsK dsLmod.proj_injK. Qed.
+Reserved Notation "\fbigoplus_ i F"
+  (at level 36, F at level 36, i at level 0,
+    right associativity,
+          format "'[' \fbigoplus_ i '/ ' F ']'").
 
-    Lemma proj_inj0 (f f' : F) x : f != f' -> proj I f (inj I f' x) = 0.
-    Proof. by simpl; rewrite /proj_raw/inj_raw -linConChain-linConChain=>H; by rewrite to_from_dsK dsLmod.proj_inj0. Qed.
-  End Results.
+Reserved Notation "\fbigoplus F"
+  (at level 36, F at level 36,
+    right associativity,
+          format "'[' \fbigoplus F ']'").
 
-  Section Split.
-    Variable (R : ringType) (F G H : finType) (I : F -> fdFreeLmodType R)
-      (F_GH : G + H -> F) (enumB : enum F = map F_GH (enum (sum_finType G H))).
+Reserved Notation "\fbigoplus_ ( i <- r ) F"
+  (at level 36, F at level 36, i, r at level 50,
+          format "'[' \fbigoplus_ ( i <- r ) '/ ' F ']'").
 
-    Definition oF_to_oGH : ordinal_subType #|F| -> ordinal_subType #|(sum_finType G H)|.
-    Proof. by rewrite !cardT enumB size_map. Defined.
+Reserved Notation "\fbigoplus_ ( i : t ) F"
+  (at level 36, F at level 36, i at level 50,
+          format "'[' \fbigoplus_ ( i : t ) '/ ' F ']'").
 
-    Lemma bij : bijective F_GH. Admitted.
+Reserved Notation "\fbigoplus_ ( i 'in' A ) F"
+  (at level 36, F at level 36, i, A at level 50,
+          format "'[' \fbigoplus_ ( i 'in' A ) '/ ' F ']'").
 
-    Definition Jj : G -> F := fun g : G => F_GH (inl g).
-    Definition Kk : H -> F := fun h : H => F_GH (inr h).
-    Definition J : G -> fdFreeLmodType R := fun g : G => I (Jj g).
-    Definition K : H -> fdFreeLmodType R := fun h : H => I (Kk h).
+Infix "\foplus" := (dsFdFreeLmod.Pair.fdFreeLmod) (at level 36).
+Notation "\fbigoplus_ i F" := (dsFdFreeLmod.type (fun i => F)) : lmod_scope.
+Notation "\fbigoplus F" := (dsFdFreeLmod.type F) : lmod_scope.
+Notation "\fbigoplus_ ( i : t ) F" := (dsFdFreeLmod.type (fun i : t => F)) : lmod_scope.
+Notation "\fbigoplus_ ( i 'in' A ) F" := (dsFdFreeLmod.Seq.fdFreeLmod (filter F (fun i => i \in A))) : lmod_scope.
 
-    Definition dsSplit : type I -> pair_lmodType (dsLmod.DS J) (dsLmod.DS K)
-     := (@dsLmod.split _ _ _ _ I F_GH) \oLin to_ds I.
-
-    Definition split_raw : type I -> type J \foplus type K
-     := fun x => (from_ds J (dsSplit x).1,from_ds K (dsSplit x).2).
-
-    Definition unsplit_raw : type J \foplus type K -> type I
-    := fun x => from_ds I (dsLmod.unsplit _ F_GH (to_ds J x.1,to_ds K x.2)).
-
-    Lemma split_lin : linear split_raw.
-    Proof. rewrite/split_raw/dsSplit=>r x y.
-    by rewrite !linearP. Qed.
-    Definition split := Linear split_lin.
-
-    Lemma unsplit_lin : linear unsplit_raw.
-    Proof. rewrite/unsplit_raw=>r x y.
-    rewrite !linearPZ.
-    rewrite -!linearPZ.
-    (have: (to_ds J (r *: x.1 + y.1), to_ds K (r *: x.2 + y.2))
-     = (r *: (to_ds J x.1, to_ds K x.2) +
-     (to_ds J y.1, to_ds K y.2))
-    by rewrite !/(scale _) !linearPZ /scale_pair)=>E.
-    by rewrite E.
-    Qed.
-    Definition unsplit := Linear unsplit_lin.
-    
-    Lemma split_unsplitK : cancel split unsplit.
-      Proof. simpl;
-        rewrite /unsplit_raw/split_raw/dsSplit=>x.
-        (have:forall p1 p2, (p1,p2).1 = p1 by []);
-        (have:forall p1 p2, (p1,p2).2 = p2 by [])=> H2 H1.
-        rewrite H1 H2 !to_from_dsK -!linConChain (dsLmod.split_unsplitK bij).
-        by rewrite from_to_dsK.
-      Qed.
-
-    Lemma unsplit_splitK : cancel unsplit split.
-      Proof. simpl;
-        rewrite /split_raw/unsplit_raw/dsSplit=>x.
-        rewrite  -linConChain to_from_dsK (dsLmod.unsplit_splitK bij).
-        by rewrite !from_to_dsK; destruct x.
-      Qed.
-
-  End Split.
-  End dsFdFreeLmod.
-Definition dsFdFreeLmodType (R : ringType) (F : finType) (I : F -> (fdFreeLmodType R)) := dsFdFreeLmod.type I.
 
 Export dsFdFreeLmod.Pair.Exports.
-Notation "\fbigoplus_ i F" := (dsFdFreeLmodType (fun i => F)).
-Notation "\fbigoplus F" := (dsFdFreeLmodType F).
-Notation "\fbigoplus_ ( i : t ) F" := (dsFdFreeLmodType (fun i : t => F)).
-Notation "\fbigoplus_ ( i 'in' A ) F" := (dsFdFreeLmod.Seq.fdFreeLmod (filter F (fun i => i \in A))).
-Notation nullBasis := fdFreeLmodNull.Basis.
-Notation pairBasis := dsFdFreeLmod.Pair.Basis.
-Notation "\fproj^( I )_ f " := (dsFdFreeLmod.proj I f ).
-Notation "\finj^( I )_ f " := (dsFdFreeLmod.inj I f ).
-Notation "\fproj_ f ^( I )" := (dsFdFreeLmod.proj I f ).
-Notation "\finj_ f ^( I )" := (dsFdFreeLmod.inj I f ).
+Export dsFdFreeLmod.Seq.Exports.
+
+Theorem UniversalProperty (R : ringType) (M : fdFreeLmodType R)
+    : forall (N : lmodType R) (f : (fdBasis M) -> N), 
+      exists (g : {linear M -> N}),
+        f = g \o (fdBasis M).
+  Proof.
+    move=>N f.
+    pose (g := fun x => \sum_(b : (fdBasis M)) \fdFreeBasisCoef_(b) x *: f b).
+    (have: linear g
+    by move=>r x y; rewrite scaler_sumr -big_split;
+    apply eq_bigr=>b _;
+    rewrite scalerA linearP scalerDl)=>H.
+    refine(ex_intro _ (Linear H) _).
+    apply functional_extensionality=>x.
+    by (have: f x = g (fdBasis M x) by
+    rewrite /g (eq_bigr (fun b : fdBasis M => (if b == x then f b else 0)) _);
+    [by rewrite -big_mkcond big_pred1_eq|]=>b _;
+    rewrite (lmodFinBasis.coefO);
+    by case (b == x); [rewrite scale1r|rewrite scale0r])=>G.
+  Qed.
 
 Close Scope ring_scope.
+Close Scope lmod_scope.

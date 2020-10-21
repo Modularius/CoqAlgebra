@@ -15,183 +15,78 @@ Unset Strict Implicit.
 
 Require Import FreeModules DirectSum Algebras Basis Morphism Submodule Quotient.
 
+Open Scope lmod_scope.
+
 Module ringPower.
   Section Def.
     Variable (R : ringType).
 
-    Section UnitBasis.
-      Definition unit_fn := fun _ : unit_eqType => (GRing.one R) : (lmods.ringMod R).
-      Lemma unit_injective : injective unit_fn.
-        Proof. by move=>x y; destruct x, y. Qed.
-      Lemma unit_nondegen : non_degenerate unit_fn.
-        Proof. rewrite /unit_fn=>x; apply GRing.oner_neq0. Qed.
-
-      Definition unit_bset := lmodFinSet.Build unit_injective unit_nondegen.
-
-      Lemma unit_li : li unit_bset.
-      Proof. move=>/=c H b; move: H.
-        rewrite -big_enum big_enum_cond/unit_fn(big_pred1 tt)
-        /(GRing.scale _)=>/=;by [rewrite GRing.mulr1; case b|
-        rewrite /pred1=>x; case x].
-      Qed.
-
-      Lemma unit_spanning : spanning unit_bset.
-      Proof. move=>/=x. rewrite /lmodFinBasis.spanProj.
-        refine (exist _ (fun _ => linID.map _) _).
-        rewrite /lmodFinBasis.spanProp -big_enum big_enum_cond/unit_fn
-        (big_pred1 tt) /(scale _); unlock linID.map=>/=;
-        by [rewrite GRing.mulr1|rewrite /pred1=>x'; case x'].
-      Qed.
-
-      Definition unitBasis : lmodFinBasisType (lmods.ringMod R) := lmodFinBasis.Build unit_li unit_spanning.
-      Definition freeRingMod := @fdFreeLmodPack R (lmods.ringMod R) unitBasis.
-    End UnitBasis.
     Variable (n : nat).
-    Definition fn := fun j : 'I_n => freeRingMod.
+    Definition fn := fun j : 'I_n => unit_fdFreeLmod R.
 
-    Definition type := \fbigoplus_(j : 'I_n) freeRingMod.
+    Definition type := \bigoplus_(j : 'I_n) fn.
   End Def.
 
   Module Exports.
     Notation lmodRingPower := type.
-    Notation "R \lmod^ n" := (type R n) (at level 30).
+    Notation "R \lmod^ n" := (matrix_lmodType R 1 n) (*type R n*) (at level 30).
   End Exports.
 End ringPower.
-Export ringPower.Exports.
-
-
+Notation "R \lmod^ n" := (matrix_lmodType R 1 n) (*type R n*) (at level 30).
 
 Section Properties.
   Variable (R : ringType) (n m : nat).
 
-  Local Notation RR := (fun _ => ringPower.freeRingMod R).
-  Definition split_vs
-    : {linear R\lmod^(n + m) -> R\lmod^n \foplus R\lmod^m}
-    := dsFdFreeLmod.split _ unsplit.
+  Definition split_fmod
+    : {linear R\lmod^(n + m) -> R\lmod^n \oplus R\lmod^m}
+    := (lsubmx_linear R 1 n m) \linPlusCol (rsubmx_linear R 1 n m).
 
-  Definition unsplit_vs
-    : {linear R\lmod^n \foplus R\lmod^m -> R\lmod^(n + m)}
-    := dsFdFreeLmod.unsplit _ unsplit.
+  Definition row1_raw := fun x : R\lmod^n => row_mx x (0 : 'M_(1,m)).
+  Definition row2_raw := fun x : R\lmod^m => row_mx (0 : 'M_(1,n)) x.
+  Lemma row1_lin : linear row1_raw.
+  Proof. rewrite /row1_raw=>r x y.
+  by rewrite scale_row_mx scaler0 add_row_mx addr0. Qed.
+  Lemma row2_lin : linear row2_raw.
+  Proof. rewrite /row2_raw=>r x y.
+  by rewrite scale_row_mx scaler0 add_row_mx addr0. Qed.
+  Definition row1 := Linear row1_lin.
+  Definition row2 := Linear row2_lin.
+
+  Definition unsplit_fmod
+    : {linear R\lmod^n \oplus R\lmod^m -> R\lmod^(n + m)}
+    := row1 \linPlusRow row2.
+
 
   Lemma enumB : enum (ordinal_finType (n + m)) =
     [seq unsplit i | i <- enum (sum_finType (ordinal_finType n) (ordinal_finType m))].
     Proof.
       rewrite !enumT (unlock _)=>/=.
-      induction n, m.
-      rewrite /sum_enum/ord_enum map_cat (unlock _)/unsplit=>//=.
+      rewrite /sum_enum map_cat.
+      have: [seq @unsplit n m i | i <- [seq inl x | x <- Finite.enum (ordinal_finType n)]] = map (lshift m) (Finite.enum (ordinal_finType n))
+      by induction (Finite.enum (ordinal_finType n))=>//=; rewrite IHl.
+      have: [seq @unsplit n m i | i <- [seq inr x | x <- Finite.enum (ordinal_finType m)]] = map (@rshift n m) (Finite.enum (ordinal_finType m))
+      by induction (Finite.enum (ordinal_finType m))=>//=; rewrite IHl.
+      move=>H1 H2.
+      rewrite H1 H2;clear H1 H2.
+      induction m.
+      rewrite /(ordinal_finType 0) (unlock _) cats0=>/=. admit.
     Admitted.
 
-    Lemma split_unsplit_vsK : cancel split_vs unsplit_vs.
-    Proof. rewrite/split_vs/unsplit_vs=>x.
-    apply (dsFdFreeLmod.split_unsplitK enumB). Qed.
-
-    Lemma unsplit_split_vsK : cancel unsplit_vs split_vs.
-    Proof. rewrite/split_vs/unsplit_vs=>x.
-      by rewrite (dsFdFreeLmod.unsplit_splitK enumB). Qed.
+    Lemma unsplit_fmodK : cancel split_fmod unsplit_fmod.
+    Proof. simpl; rewrite/dsLmod.Pair.to_ds_raw/dsLmod.Pair.from_ds_raw=>x/=.
+    by rewrite /row1_raw/row2_raw add_row_mx !addr0 !add0r hsubmxK. Qed.
+    
+    Lemma split_fmodK : cancel unsplit_fmod split_fmod.
+    Proof. simpl; rewrite/dsLmod.Pair.to_ds_raw/dsLmod.Pair.from_ds_raw=>x/=.
+      rewrite {5}(dsLmod.Pair.inj_proj_sum x); destruct x=>/=.
+      by rewrite /row1_raw/row2_raw add_row_mx row_mxKl row_mxKr addr0 add0r.
+    Qed.
 End Properties.
-
-Section Morphisms.
-  Variable (R : ringType).
-
-  Lemma R0_nullBasis
-   : to_FinType (fdBasis (R \lmod^ 0)) = void_finType.
-  Proof. rewrite/lmodRingPower=>/=.
-    by rewrite /dsFdFreeLmodType/dsFdFreeLmod.type enumT (unlock _).
-  Qed.
-
-
-  
-
-
-  Lemma RSn_nullBasis (n : nat)
-   : size (enum(to_FinType (fdBasis (R \lmod^(n.+1))))) = size (enum (sum_finType (to_FinType (fdBasis (R \lmod^n))) (adhoc_seq_sub_finType (iota n 1)))).
-  Proof.
-  rewrite -addn1.
-  rewrite!/lmodRingPower!/dsFdFreeLmodType!/dsFdFreeLmod.type=>/=.
-  rewrite !enumT !(unlock _)=>/=.
-  have : [seq ringPower.freeRingMod R | _ <- ord_enum (n + 1)]
-   = [seq ringPower.freeRingMod R | _ <- ord_enum n]
-    ++ [seq ringPower.freeRingMod R | _ <- pmap insub (iota n 1)].
-  rewrite /ord_enum iota_add add0n pmap_cat map_cat.
-  rewrite /(iota n 1).
-  Set Printing All.
-  rewrite addn1.
-  Set Printing All.
-  fold ord_enum.
-    rewrite /ord_enum.
-  Qed.
-  Lemma ringPowerOfSize (n : nat) : n = size (enum (to_FinType (fdBasis (R \lmod^ n)))).
-  induction n.
-  rewrite/lmodRingPower/dsFdFreeLmodType/dsFdFreeLmod.type=>/=.
-  by rewrite !enumT !(unlock _).
-  rewrite {1}IHn.
-  symmetry; rewrite -addn1; symmetry.
-  rewrite!/lmodRingPower!/dsFdFreeLmodType!/dsFdFreeLmod.type=>/=.
-  rewrite !enumT !(unlock _)=>/=.
-  rewrite /ord_enum iota_add add0n pmap_cat map_cat.
-  rewrite /(iota n 1)=>/=.
-  rewrite /oapp/insub.
-
-  have: (ord_enum (n.+1)) = (Ordinal (ltn0Sn n)) :: (behead (ord_enum (n.+1))).
-  clear IHn.
-  rewrite /ord_enum=>/=.
-  rewrite /oapp/insub/behead.
-  destruct idP.
-  rewrite /Sub=>/=.
-  by rewrite (proof_irrelevance _ (ltn0Sn n) i).
-  rewrite /not in n0.
-  by contradiction (n0 (ltn0Sn n)).
-  move=>J. rewrite J map_cons=>/=.
-  rewrite /sum_enum size_cat size_map (unlock _) size_map -add1n=>/=.
-  Check behead_map.
-  rewrite -behead_map=>/=.
-  clear J IHn.
-  induction n=>//=.
-  rewrite /ord_enum/pmap/iota/oapp/insub.
-  destruct idP=>//=.
-  Admitted.
-
-  Section MatrixConversion.
-    Variable (m n : nat) (f : {linear R\lmod^m -> R\lmod^n}).
-    Definition to_matrix
-    := \matrix_(i < n, j < m)
-            lmodFinBasisProj (T := fdBasis (R\lmod^n))
-              (lmodFinSet.from_ord (ringPowerOfSize _) i)
-              (f ((fdBasis (R\lmod^m))(lmodFinSet.from_ord (ringPowerOfSize _) j))).
-  End MatrixConversion.
-  Check to_matrix.
-
-  Section VectorConversion.
-    Variable (n : nat) (x : R\lmod^n).
-    Definition to_vector :=
-      \matrix_(i < n, _ < 1)
-        lmodFinBasisProj (T := fdBasis (R\lmod^n))
-          (lmodFinSet.from_ord (ringPowerOfSize _) i) x.
-  End VectorConversion.
-  
-  Variable (m n : nat) (f : {linear R\lmod^m -> R\lmod^n}) (x : R\lmod^m) (y : R\lmod^n).
-  Lemma matrix_mul_vec : (to_matrix f) *m (to_vector x) = (to_vector (f x)).
-  Proof.
-    induction m.
-    rewrite /mulmx=>/=.
-    rewrite (unlock _) /matrix_of_fun=>/=.
-  Admitted.
-
-  Lemma linear_map_equiv_to_matrix_mul : f x = y <-> (to_matrix f) *m (to_vector x) = (to_vector y).
-  Proof.
-    rewrite matrix_mul_vec.
-    split=>H. by rewrite H.
-    induction n.
-    admit.
-    rewrite /to_vector in H.
-  Admitted.
-End Morphisms.
 
 
 
 Open Scope ring_scope.
 Module ringIBN.
-  Infix "\foplus" := (dsFdFreeLmod.Pair.fdFreeLmod) (at level 36).
   Section Def.
     Definition axiom (R : ringType) :=
       forall n m : nat,
@@ -202,57 +97,63 @@ Module ringIBN.
     End Def.
 
     Section Result.
-      Variable (R : ringType).
+      Variable (R : comRingType).
       Section Lemmas.
         Variable (n m : nat) (f : {linear R \lmod^m -> R \lmod^n})
         (g : {linear R \lmod^n -> R \lmod^m}) (Inj : cancel f g) (Sur : cancel g f).
 
         Section Lemmas2.
           Variable (X : m < n).
-          Definition split_dim_raw : R \lmod^n -> R \lmod^(m + (n - m)).
+
+          (* Given a proof that m < n, we map a vector of
+          R\lmod^n to R\lmod^(m + (n - m))
+          via the identity *)
+          Definition partition_dim_raw : R \lmod^n -> R \lmod^(m + (n - m)).
             rewrite addnBCA=>//.
             by rewrite subnn addn0.
             by rewrite leq_eqVlt X -(rwP orP); right.
           Defined.
 
-          Definition unsplit_dim_raw : R \lmod^(m + (n - m)) -> R \lmod^n.
+          Definition unpartition_dim_raw : R \lmod^(m + (n - m)) -> R \lmod^n.
             rewrite addnBCA=>//.
             by rewrite subnn addn0.
             by rewrite leq_eqVlt X -(rwP orP); right.
           Defined.
 
-          Lemma split_dim_lin : linear split_dim_raw.
-            rewrite/split_dim_raw/eq_rect_r/eq_rect=>r x y/=.
+          Lemma partition_dim_raw_lin : linear partition_dim_raw.
+            rewrite/partition_dim_raw/eq_rect_r/eq_rect=>r x y/=.
             by destruct(Logic.eq_sym _), (Logic.eq_sym _), (Logic.eq_sym _).
           Qed.
           
-          Lemma unsplit_dim_lin : linear unsplit_dim_raw.
-            rewrite/unsplit_dim_raw/eq_rect_r/eq_rect=>r x y/=.
+          Lemma unpartition_dim_lin : linear unpartition_dim_raw.
+            rewrite/unpartition_dim_raw/eq_rect_r/eq_rect=>r x y/=.
             by destruct(Logic.eq_sym _), (Logic.eq_sym _), (Logic.eq_sym _).
           Qed.
 
-          Definition split_dim := Linear split_dim_lin.
-          Definition unsplit_dim := Linear unsplit_dim_lin.
+          Definition partition_dim := Linear partition_dim_raw_lin.
+          Definition unpartition_dim := Linear unpartition_dim_lin.
 
-          Definition split_vs :=    (@split_vs _ m (n - m)) \oLin split_dim.
-          Definition unsplit_vs :=  unsplit_dim \oLin (@unsplit_vs _ m (n - m) ).
-
-          Lemma split_unsplit_dimK : cancel split_dim unsplit_dim.
-            Proof. simpl; rewrite /split_dim_raw/unsplit_dim_raw/eq_rect_r/eq_rect=>x/=.
+          Lemma unpartition_dimK : cancel partition_dim unpartition_dim.
+            Proof. simpl; rewrite /partition_dim_raw/unpartition_dim_raw/eq_rect_r/eq_rect=>x/=.
             by destruct(Logic.eq_sym _), (Logic.eq_sym _), (Logic.eq_sym _).
           Qed.
 
-          Lemma unsplit_split_dimK : cancel unsplit_dim split_dim.
-            Proof. simpl; rewrite /split_dim_raw/unsplit_dim_raw/eq_rect_r/eq_rect=>x/=.
+          Lemma partition_dimK : cancel unpartition_dim partition_dim.
+            Proof. simpl; rewrite /partition_dim_raw/unpartition_dim_raw/eq_rect_r/eq_rect=>x/=.
             by destruct(Logic.eq_sym _), (Logic.eq_sym _), (Logic.eq_sym _).
           Qed.
 
-          Lemma split_unsplit_vsK : cancel split_vs unsplit_vs.
-            Proof. by simpl; rewrite /split_vs/unsplit_vs=>x; rewrite -!linConChain split_unsplit_vsK split_unsplit_dimK.
+
+          Definition split_vs :=    (@split_fmod _ m (n - m)) \oLin partition_dim.
+          Definition unsplit_vs :=  unpartition_dim \oLin (@unsplit_fmod _ m (n - m) ).
+
+
+          Lemma unsplit_vsK : cancel split_vs unsplit_vs.
+            Proof. by simpl; rewrite /split_vs/unsplit_vs=>x; rewrite -!linCompChain unsplit_fmodK unpartition_dimK.
           Qed.
 
-          Lemma unsplit_split_vsK : cancel unsplit_vs split_vs.
-            by simpl; rewrite /split_vs/unsplit_vs=>x; rewrite -!linConChain unsplit_split_dimK unsplit_split_vsK.
+          Lemma split_vsK : cancel unsplit_vs split_vs.
+            by simpl; rewrite /split_vs/unsplit_vs=>x; rewrite -!linCompChain partition_dimK split_fmodK.
           Qed.
 
           Definition extend_f : {linear R\lmod^n -> R\lmod^n}
@@ -262,69 +163,110 @@ Module ringIBN.
            := unsplit_vs \oLin (dsLmod.Pair.inj1 _ (R\lmod^(n - m)) \oLin g).
         
           Lemma extend_fgK : cancel extend_g extend_f.
-            by rewrite/extend_f/extend_g=>x; rewrite -!linConChain (linConChain split_dim) (linConChain _ unsplit_dim) unsplit_split_vsK Sur.
+            by rewrite/extend_f/extend_g=>x; rewrite -!linCompChain (linCompChain partition_dim) (linCompChain _ unpartition_dim) split_vsK Sur.
           Qed.
         End Lemmas2.
 
         Definition nonsingular (h : {linear R\lmod^n -> R\lmod^n})
         := forall x, h x = 0 -> x = 0.
 
+        Lemma nonsingularE (h : {linear R\lmod^n -> R\lmod^n})
+        : nonsingular h -> (forall y, {x : R\lmod^n | h x == y}).
+        Proof.
+          rewrite/nonsingular=>H y.
+        Admitted.
+        (*
         Lemma nonsingular_nonzero_det (h : {linear R\lmod^n -> R\lmod^n})
-         : nonsingular h -> \det(to_matrix h) != 0.
-        Proof. rewrite/nonsingular-(rwP negP)/not=>H N.
+         : nonsingular h -> \det(lin1_mx h) != 0.
+        Proof. rewrite/nonsingular-(rwP negP)/not=>H.
+          rewrite -(rwP det0P) => N.
+          destruct N.
+          rewrite mul_rV_lin1 /to_map  in H1.
+          by rewrite (H x H1) eq_refl in H0.
+          (*have: h (from_row (ringPowerOfSize R n) x) = 0.
+          have: from_row (ringPowerOfSize R n) (to_row (M:=R \lmod^ n) (ringPowerOfSize R n)
+          (h (from_row (M:=R \lmod^ n) (ringPowerOfSize R n) x))) = 0.
+          by rewrite H1 linear0.
+          move=>J.
+          by rewrite tofrom_rowK in J.
+          move=>J.
+          assert(J2 := H (from_row (ringPowerOfSize R n) x) J).
+          assert(J3 : to_row (ringPowerOfSize R n) (from_row (ringPowerOfSize R n) x) = 0).
+          by rewrite J2 linear0.
+          rewrite fromto_rowK in J3.
+          by rewrite J3 eq_refl in H0.*)
+        Qed.
 
+        Definition nonsingular_inverse_raw
+        (h : {linear R\lmod^n -> R\lmod^n}) : R\lmod^n -> R\lmod^n
+           := fun x => (mulmx x (invmx (lin1_mx h))).
+        Lemma nonsingular_inverse_lin (h : {linear R\lmod^n -> R\lmod^n})
+          : linear (nonsingular_inverse_raw h).
+          Proof. rewrite/nonsingular_inverse_raw=>r x y.
+          by rewrite mulmxDl scalemxAl. Qed.
+        Definition nonsingular_inverse
+        (h : {linear R\lmod^n -> R\lmod^n}) : {linear R\lmod^n -> R\lmod^n}
+            := Linear (nonsingular_inverse_lin h).
+*)
         Lemma nonsingular_bijective (h : {linear R\lmod^n -> R\lmod^n})
         : nonsingular h -> bijective h.
         Proof.
-          rewrite/nonsingular=>N.
-        Admitted.
+          move=>N.
+          Admitted.
+          (*Check mulmx.
+          refine(@Bijective _ _ h (nonsingular_inverse h) _ _); simpl.
+          rewrite /nonsingular_inverse_raw=>x/=.
+        Admitted.*)
 
         Lemma nonsingular_product (h1 h2 : {linear R\lmod^n -> R\lmod^n})
         : nonsingular (h2 \oLin h1) <-> nonsingular h1 /\ nonsingular h2.
         Proof. split; rewrite/nonsingular=>/=X. {
             split=>x Z. {
               (have: (h2 (h1 x)) = 0 by rewrite Z linear0)=>H.
-              rewrite linConChain in H.
+              rewrite linCompChain in H.
               by apply (X x H).
             }
             (have: nonsingular h1 by
               rewrite/nonsingular=>x0 H;
               (have: h2 (h1 x0) = 0 by rewrite H linear0)=>H2;
-              rewrite linConChain in H2;
+              rewrite linCompChain in H2;
               by apply (X x0 H2));
             rewrite/nonsingular=>H.
             destruct (nonsingular_bijective H).
             (have : h2 (h1 (g0 x)) = 0 by rewrite H1)=>H2.
-            rewrite linConChain in H2.
+            rewrite linCompChain in H2.
             assert(P := X (g0 x) H2).
             apply (f_equal h1) in P.
             by rewrite H1 linear0 in P.
           }
           move=>x H; destruct X as [X1 X2].
-          rewrite -linConChain in H.
+          rewrite -linCompChain in H.
           by apply (X1 x (X2 (h1 x) H)).
         Qed.
 
       Lemma L1 : ~~(m < n).
-        apply(rwP negP); rewrite/not=>X.
+      Proof. apply(rwP negP); rewrite/not=>X.
         (have:(0 < n - m) by
           induction n; [inversion X|rewrite subn_gt0])=>H.
-        pose(Y := \finj_(Ordinal H)^(@ringPower.fn R (n - m)) (GRing.one R)).
-        pose(Y2 := unsplit_vs X (dsLmod.Pair.inj2 (R\lmod^m) _ Y)).
         (have: nonsingular ((extend_f X) \oLin (extend_g X)) by move=>x L;
-        rewrite -linConChain (extend_fgK X x) in L).
-        rewrite nonsingular_product=>K; destruct K as [K1 K2].
+        rewrite -linCompChain (extend_fgK X x) in L).
+        rewrite nonsingular_product=>K; destruct K as [_ K2].
+
+        pose(Y2 := unsplit_vs X (dsLmod.Pair.inj2 (R\lmod^m) _ (const_mx (GRing.one R)))).
         (have: extend_f X Y2 = 0 by
-          rewrite /extend_f/Y2 -!linConChain/Dimension.split_vs/Dimension.unsplit_vs
-          unsplit_split_dimK (dsFdFreeLmod.unsplit_splitK (enumB R _ _));
-          rewrite dsLmod.Pair.proj1_inj2K linear0)=>V.
+          rewrite /extend_f/Y2 -!linCompChain
+          partition_dimK Dimension.split_fmodK
+          dsLmod.Pair.proj1_inj20 linear0)=>V.
+
         assert(E := K2 Y2 V).
         apply (f_equal (split_vs X)) in E.
-        apply (f_equal (dsLmod.Pair.proj2 _ _)) in E.
-        apply (f_equal (\fproj^(_)_(Ordinal H))) in E; move: E.
-        by rewrite unsplit_split_vsK dsLmod.Pair.proj2_inj2K
-        dsFdFreeLmod.proj_injK !linear0 (rwP eqP) oner_eq0.
+        apply (f_equal (dsLmod.Pair.proj2 _ _)) in E; move: E.
+        rewrite /Y2 split_vsK dsLmod.Pair.proj2_inj2K
+        !linear0 /(GRing.zero _) -matrixP /eqrel=>E.
+        pose (K := E (Ordinal (ltnSn (0%nat))) (Ordinal H)); move:K.
+        by rewrite !mxE (rwP eqP) oner_eq0.
       Qed.
+
 
       Lemma L2 : ~~(n < m).
         apply(rwP negP); rewrite/not=>X.
@@ -338,6 +280,7 @@ Module ringIBN.
         Variable (R : comRingType).
     Lemma cRingIBN : axiom R. Proof.
     move=>n m E.
+    Check isomlK E.
     assert(A:= L1 (isomlK E) (isomKl E)).
     assert(B:= L2 (isomlK E) (isomKl E)).
     rewrite -leqNgt in A.
@@ -405,10 +348,10 @@ Module fdFreeLmodDimension.
     Lemma dim_of_DS : forall {F : finType} (I : F -> fdFreeLmodType R),
       dim (\fbigoplus I) = \sum_f (dim (I f)).
     Proof. move => F I.
-      rewrite /dsFdFreeLmodType/dsFdFreeLmod.type -big_enum enumT =>/=;
+      rewrite /dsFdFreeLmod.type/dsFdFreeLmod.Seq.fdFreeLmod -big_enum enumT =>/=.
       induction(Finite.enum F); by [
       rewrite /dim/basis_number big_nil card_void|
-      rewrite dim_of_DSPair big_cons IHl].
+      rewrite big_cons -IHl -dim_of_DSPair /dsFdFreeLmod.Pair.fdFreeLmod/dsFdFreeLmod.Seq.basis].
     Qed.
 
 (*

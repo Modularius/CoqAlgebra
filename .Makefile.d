@@ -13,6 +13,9 @@ theories/Algebra/Morphism.vos theories/Algebra/Morphism.vok theories/Algebra/Mor
 theories/Algebra/Algebras.vo theories/Algebra/Algebras.glob theories/Algebra/Algebras.v.beautified theories/Algebra/Algebras.required_vo: theories/Algebra/Algebras.v theories/Algebra/Submodule.vo
 theories/Algebra/Algebras.vio: theories/Algebra/Algebras.v theories/Algebra/Submodule.vio
 theories/Algebra/Algebras.vos theories/Algebra/Algebras.vok theories/Algebra/Algebras.required_vos: theories/Algebra/Algebras.v theories/Algebra/Submodule.vos
+theories/Algebra/DirectSumGeneric.vo theories/Algebra/DirectSumGeneric.glob theories/Algebra/DirectSumGeneric.v.beautified theories/Algebra/DirectSumGeneric.required_vo: theories/Algebra/DirectSumGeneric.v 
+theories/Algebra/DirectSumGeneric.vio: theories/Algebra/DirectSumGeneric.v 
+theories/Algebra/DirectSumGeneric.vos theories/Algebra/DirectSumGeneric.vok theories/Algebra/DirectSumGeneric.required_vos: theories/Algebra/DirectSumGeneric.v 
 theories/Algebra/DirectSum.vo theories/Algebra/DirectSum.glob theories/Algebra/DirectSum.v.beautified theories/Algebra/DirectSum.required_vo: theories/Algebra/DirectSum.v theories/Algebra/Algebras.vo theories/Algebra/Submodule.vo theories/Algebra/Classes.vo theories/Algebra/Morphism.vo
 theories/Algebra/DirectSum.vio: theories/Algebra/DirectSum.v theories/Algebra/Algebras.vio theories/Algebra/Submodule.vio theories/Algebra/Classes.vio theories/Algebra/Morphism.vio
 theories/Algebra/DirectSum.vos theories/Algebra/DirectSum.vok theories/Algebra/DirectSum.required_vos: theories/Algebra/DirectSum.v theories/Algebra/Algebras.vos theories/Algebra/Submodule.vos theories/Algebra/Classes.vos theories/Algebra/Morphism.vos

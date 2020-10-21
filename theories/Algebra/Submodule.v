@@ -12,6 +12,8 @@ Set Warnings "ambiguous-paths".
 Set Implicit Arguments.
 Unset Strict Implicit.
 
+Declare Scope lmod_scope.
+
 Module subLmod.
   Section Def.
     Definition qualSubElem {R : ringType} {M : lmodType R} (P : predPredType M)
