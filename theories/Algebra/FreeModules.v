@@ -59,7 +59,7 @@ Set Warnings "-ambiguous-paths". (* Some weird bug in ssralg throws out coercion
     From mathcomp Require Import ssralg.
 Set Warnings "ambiguous-paths".
 
-Require Import Algebras DirectSum Classes Basis Morphism.
+Require Import Modules Linears DirectSum Basis.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Open Scope ring_scope.
@@ -343,14 +343,14 @@ Section Morphisms.
 
     Lemma from_mapK : cancel to_map from_map.
     Proof. rewrite/from_map/to_map=>/=f.
-      rewrite !eq_lin.
+      rewrite !linear_eq.
       apply functional_extensionality=>x.
       by rewrite -!linCompChain !from_rowK.
     Qed.
     
     Lemma to_mapK : cancel from_map to_map.
     Proof. rewrite/from_map/to_map=>f.
-      rewrite !eq_lin.
+      rewrite !linear_eq.
       apply functional_extensionality=>x.
       by rewrite -!linCompChain !to_rowK.
     Qed.
@@ -603,7 +603,7 @@ Reserved Notation "\fbigoplus_ ( i 'in' A ) F"
   (at level 36, F at level 36, i, A at level 50,
           format "'[' \fbigoplus_ ( i 'in' A ) '/ ' F ']'").
 
-Infix "\foplus" := (dsFdFreeLmod.Pair.fdFreeLmod) (at level 36).
+Infix "\foplus" := (dsFdFreeLmod.Pair.fdFreeLmod) (at level 36) : lmod_scope.
 Notation "\fbigoplus_ i F" := (dsFdFreeLmod.type (fun i => F)) : lmod_scope.
 Notation "\fbigoplus F" := (dsFdFreeLmod.type F) : lmod_scope.
 Notation "\fbigoplus_ ( i : t ) F" := (dsFdFreeLmod.type (fun i : t => F)) : lmod_scope.
@@ -613,7 +613,7 @@ Notation "\fbigoplus_ ( i 'in' A ) F" := (dsFdFreeLmod.Seq.fdFreeLmod (filter F 
 Export dsFdFreeLmod.Pair.Exports.
 Export dsFdFreeLmod.Seq.Exports.
 
-Theorem UniversalProperty (R : ringType) (M : fdFreeLmodType R)
+Theorem FreeModule_UniversalProperty (R : ringType) (M : fdFreeLmodType R)
     : forall (N : lmodType R) (f : (fdBasis M) -> N), 
       exists (g : {linear M -> N}),
         f = g \o (fdBasis M).

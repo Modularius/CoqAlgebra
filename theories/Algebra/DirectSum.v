@@ -19,22 +19,22 @@
 (*          \bigoplus I == equivalent to \bigoplus_(f : F) I                  *)
 (*                         where I : F -> lmodType R                          *)
 (******************************************************************************)
-(* The following constructions and lemmas relate to M1 \oplus M2,             *)
-(* the direct sum of the pair of lmodTypes M1 and M2                          *)
+(* The following constructions and lemmas relate to M \oplus N,               *)
+(* the direct sum of the pair of lmodTypes M and N                            *)
 (******************************************************************************)
-(*  \proj1^(M1,M2)   == the linear projection from M1 \oplus M2 to M1         *)
-(*  \proj2^(M1,M2)   == the linear projection from M1 \oplus M2 to M2         *)
-(*  \incl1^(M1,M2)   == the linear inclusion from M1 to M1 \oplus M2          *)
-(*  \incl2^(M1,M2)   == the linear inclusion from M2 to M1 \oplus M2          *)
-(*  incl1_injective  == a proof that \incl1^(M1,M2) is injective              *)
-(*  incl2_injective  == a proof that \incl2^(M1,M2) is injective              *)
-(*  proj1_incl1K     == a proof of \proj1^(M1,M2) (\incl1^(M1,M2) x = x       *)
-(*  proj2_incl2K     == a proof of \proj2^(M1,M2) (\incl2^(M1,M2) x = x       *)
-(*  proj1_incl20     == a proof of \proj1^(M1,M2) (\incl2^(M1,M2) x = 0       *)
-(*  proj2_incl10     == a proof of \proj2^(M1,M2) (\incl1^(M1,M2) x = 0       *)
-(*  incl_proj12_sum  == a proof that any x : M1 \oplus M2 can be written      *)
-(*                         x = \incl1^(U,V) (proj1^(U,V) x)                   *)
-(*                              + \incl2^(U,V) (proj2^(U,V) x)                *)
+(*  \proj1^(M,N)   == the linear projection from M \oplus N to M              *)
+(*  \proj2^(M,N)   == the linear projection from M \oplus N to N              *)
+(*  \incl1^(M,N)   == the linear inclusion from M to M \oplus N               *)
+(*  \incl2^(M,N)   == the linear inclusion from N to M \oplus N               *)
+(*  incl1_injective  == a proof that \incl1^(M,N) is injective                *)
+(*  incl2_injective  == a proof that \incl2^(M,N) is injective                *)
+(*  proj1_incl1K     == a proof of \proj1^(M,N) (\incl1^(M,N) x) = x          *)
+(*  proj2_incl2K     == a proof of \proj2^(M,N) (\incl2^(M,N) x) = x          *)
+(*  proj1_incl20     == a proof of \proj1^(M,N) (\incl2^(M,N) x) = 0          *)
+(*  proj2_incl10     == a proof of \proj2^(M,N) (\incl1^(M,N) x) = 0          *)
+(*  incl_proj12_sum  == a proof that any x : M \oplus N can be written        *)
+(*                         x = \incl1^(M,N) (\proj1^(M,N) x)                  *)
+(*                              + \incl2^(M,N) (\proj2^(M,N) x)               *)
 (*  incl_proj12_idem == a proof that rewriting with incl_proj12_sum is        *)
 (*                         idempotent                                         *)
 (******************************************************************************)
@@ -86,7 +86,7 @@ Set Warnings "-ambiguous-paths". (* Some weird bug in ssralg throws out coercion
     From mathcomp Require Import ssralg.
 Set Warnings "ambiguous-paths".
 
-Require Import Algebras Submodule Classes Morphism.
+Require Import Modules Linears.
 Open Scope ring_scope.
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -95,32 +95,20 @@ Include GRing.
 Open Scope  lmod_scope.
 
 Section Helpers.
-  Variable (R : ringType).
-  Section LinearSumSimpl.
-    Variable (A B C D E : lmodType R) (Ty : finType) (f : {linear A -> B}) (g : {linear B -> C}) (h : {linear C -> D}) (k : {linear D -> E}) (x : Ty -> A).
-    (*Lemma linear2_sum :
-    g (f (\sum_(i : Ty) (x i))) = \sum_(i : Ty) g (f (x i)).
-    Proof. by rewrite !linear_sum. Qed.*)
-  End LinearSumSimpl.
-
-  Section LinearSumSimpl.
-    Variable (S : finType) (X : lmodType R) (f : S*S -> X).
-    Lemma big_pair_diag_eq :
-      \sum_(i : S*S | i.2 == i.1)f i
-        = \sum_(i : S) f (i, i).
-    Proof.
-      have : forall (i : S) (_ : true), f (i, i) = \sum_(j : S) if (j == i) then f (i, j) else 0
-      by move=>i _;
-      rewrite -big_mkcond (big_pred1 i).
-      move=> H; rewrite (eq_bigr _ H); clear H.
-      by rewrite pair_bigA -big_mkcond
-      (eq_bigr (fun i => f (i.1,i.2)) _)=>/=;
-        [|move=>i _; destruct i=>/=].
-    Qed.
-  End LinearSumSimpl.
-
+  Variable (R : ringType) (S : finType) (X : lmodType R) (f : S*S -> X).
+  Lemma big_pair_diag_eq :
+    \sum_(i : S*S | i.2 == i.1)f i
+      = \sum_(i : S) f (i, i).
+  Proof.
+    have : forall (i : S) (_ : true), f (i, i) = \sum_(j : S) if (j == i) then f (i, j) else 0
+    by move=>i _;
+    rewrite -big_mkcond (big_pred1 i).
+    move=> H; rewrite (eq_bigr _ H); clear H.
+    by rewrite pair_bigA -big_mkcond
+    (eq_bigr (fun i => f (i.1,i.2)) _)=>/=;
+      [|move=>i _; destruct i=>/=].
+  Qed.
 End Helpers.
-
 
 
 Reserved Notation "\bigoplus_ i F"
@@ -166,20 +154,6 @@ Module dsLmod.
   Module Pair.
     Section Def.
       Variable (R : ringType) (m1 m2 : lmodType R).
-
-      Section Submodule.
-        Definition in1 : predPredType (m1*m2) := fun x => x.2 == 0.
-        Lemma factor1_subModule : submod_closed (subLmod.qualSubElem in1).
-          Proof. split=>[|r x y]; rewrite qualifE !unfold_in; [by rewrite eq_refl| rewrite -!(rwP eqP)=>/=Hx Hy];
-          by rewrite Hx Hy scaler0 addr0. Qed.
-        Definition sub1 := subLmodPack factor1_subModule.
-
-        Definition in2 : predPredType (m1*m2) := fun x => x.1 == 0.
-        Lemma factor2_subModule : submod_closed (subLmod.qualSubElem in2).
-          Proof. split=>[|r x y]; rewrite qualifE !unfold_in; [by rewrite eq_refl| rewrite -!(rwP eqP)=>/=Hx Hy];
-          by rewrite Hx Hy scaler0 addr0. Qed.
-        Definition sub2 := subLmodPack factor1_subModule.
-      End Submodule.
 
       Section Injection.
         Definition inj1_raw := fun x : m1 => (x,zero m2) : pair_lmodType m1 m2.
@@ -888,7 +862,7 @@ Notation "\inj^( I )_ f " := (dsLmod.inj I f ) : lmod_scope.
 Notation "\proj_ f ^( I )" := (dsLmod.proj I f ) : lmod_scope.
 Notation "\inj_ f ^( I )" := (dsLmod.inj I f ) : lmod_scope.
 
-Theorem DS_cat_theory (R : ringType) (F : finType)
+Theorem DirectSum_UniversalProperty (R : ringType) (F : finType)
   (I : F -> (lmodType R))
     : forall (f : forall i : F, {linear \bigoplus I -> (I i)}), 
       exists (g : forall i : F, {linear (I i) -> (I i)}),

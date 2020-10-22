@@ -1,3 +1,27 @@
+(******************************************************************************)
+(**)
+(******************************************************************************)
+(* Let R : ringType and M : lmodType R                                        *)
+(******************************************************************************)
+(* R\lmod^n     ==                                                            *)
+(* ringIBNType  == a record consisting of a ringType 'sort' and a proof that  *)
+(*                 forall n m : nat,                                          *)
+(*                  lmodIsomType R\lmod^n R\lmod^m -> n == m                  *)
+(*                 R : ringIBN coerces to ringType                            *)
+(* Every commutative ring satisfies the IBN condition so (R : comRingType)    *)
+(* coerces to ringIBNType via cRingToRingIBN                                  *)
+(* cRingToRingIBN R == given R : comRingType, this is a ringIBNType           *)
+(******************************************************************************)
+(* Let R : ringIBNType, and let M : fdFreeLmodType R                          *) 
+(******************************************************************************)
+(* steinitz_exchange M == proof that all bases of M have the same size *)
+(* invariant_dimension M == proof that all bases of M have the same size *)
+(* \dim(M) == the unique basis number of M                *)
+(* dim_of_oplus == proof \dim(A \oplus B) = \dim(A) + \dim(B) *)
+(* dim_of_bigoplus == proof \dim(\bigoplus_F I) = \sum_(f : F)\dim(I f) *)
+(* rank_nullity f == proof that \dim(A) = \dim(\ker(f)) + \dim(\im(f)) *)
+
+
 Require Import Coq.Logic.ProofIrrelevance Coq.Logic.FunctionalExtensionality.
 Require Import Coq.Init.Datatypes.
 From mathcomp Require Import ssreflect ssrfun eqtype seq fintype finfun bigop matrix.
@@ -13,7 +37,7 @@ Set Warnings "ambiguous-paths".
 Set Implicit Arguments.
 Unset Strict Implicit.
 
-Require Import FreeModules DirectSum Algebras Basis Morphism Submodule Quotient.
+Require Import Modules Linears DirectSum Basis FreeModules.
 
 Open Scope lmod_scope.
 
@@ -32,14 +56,16 @@ Module ringPower.
     Notation "R \lmod^ n" := (matrix_lmodType R 1 n) (*type R n*) (at level 30).
   End Exports.
 End ringPower.
-Notation "R \lmod^ n" := (matrix_lmodType R 1 n) (*type R n*) (at level 30).
+Notation "R \lmod^ n" := (matrix_lmodType R 1 n) (*type R n*) (at level 30) : lmod_scope.
 
+Open Scope lmod_scope.
+Open Scope ring_scope.
 Section Properties.
   Variable (R : ringType) (n m : nat).
 
   Definition split_fmod
     : {linear R\lmod^(n + m) -> R\lmod^n \oplus R\lmod^m}
-    := (lsubmx_linear R 1 n m) \linPlusCol (rsubmx_linear R 1 n m).
+    := \colmap(lsubmx_linear R 1 n m, rsubmx_linear R 1 n m).
 
   Definition row1_raw := fun x : R\lmod^n => row_mx x (0 : 'M_(1,m)).
   Definition row2_raw := fun x : R\lmod^m => row_mx (0 : 'M_(1,n)) x.
@@ -54,22 +80,23 @@ Section Properties.
 
   Definition unsplit_fmod
     : {linear R\lmod^n \oplus R\lmod^m -> R\lmod^(n + m)}
-    := row1 \linPlusRow row2.
+    := \rowmap(row1, row2).
 
 
   Lemma enumB : enum (ordinal_finType (n + m)) =
     [seq unsplit i | i <- enum (sum_finType (ordinal_finType n) (ordinal_finType m))].
     Proof.
-      rewrite !enumT (unlock _)=>/=.
-      rewrite /sum_enum map_cat.
-      have: [seq @unsplit n m i | i <- [seq inl x | x <- Finite.enum (ordinal_finType n)]] = map (lshift m) (Finite.enum (ordinal_finType n))
-      by induction (Finite.enum (ordinal_finType n))=>//=; rewrite IHl.
-      have: [seq @unsplit n m i | i <- [seq inr x | x <- Finite.enum (ordinal_finType m)]] = map (@rshift n m) (Finite.enum (ordinal_finType m))
-      by induction (Finite.enum (ordinal_finType m))=>//=; rewrite IHl.
-      move=>H1 H2.
-      rewrite H1 H2;clear H1 H2.
-      induction m.
-      rewrite /(ordinal_finType 0) (unlock _) cats0=>/=. admit.
+      induction n.
+      rewrite !enumT (unlock _)/sum_enum map_cat -!map_comp (unlock _)/unsplit/comp=>/=.
+      have H : forall x : 'I_m, rshift 0 x = id x
+      by rewrite/rshift=>x; destruct x as [x i];
+      rewrite -(proof_irrelevance _ i (rshift_subproof 0 (Ordinal i))).
+      by rewrite (eq_map H) map_id.
+
+      move: IHn0.
+      rewrite !enumT (unlock _)/sum_enum !map_cat -!map_comp (unlock _)/unsplit/comp=>/=.
+      move=> IHn0.
+
     Admitted.
 
     Lemma unsplit_fmodK : cancel split_fmod unsplit_fmod.
@@ -90,7 +117,7 @@ Module ringIBN.
   Section Def.
     Definition axiom (R : ringType) :=
       forall n m : nat,
-        (lmodIsomType (R\lmod^n) (R\lmod^m)) -> n == m.
+        (linIsomType (R\lmod^n) (R\lmod^m)) -> n == m.
 
     Record mixin (R : ringType) := Mixin { _ : axiom R; }.
     Record type := Pack { sort : _;  class_of : mixin sort; }.
@@ -280,7 +307,6 @@ Module ringIBN.
         Variable (R : comRingType).
     Lemma cRingIBN : axiom R. Proof.
     move=>n m E.
-    Check isomlK E.
     assert(A:= L1 (isomlK E) (isomKl E)).
     assert(B:= L2 (isomlK E) (isomKl E)).
     rewrite -leqNgt in A.
@@ -362,8 +388,9 @@ Module fdFreeLmodDimension.
   End Theory.
 
   Module Exports.
-    Notation "'\' 'dim' '(' M ')'" := (dim M) (at level 0, format "'\' 'dim' '(' M ')'").
+    Notation "'\' 'dim' '(' M ')'" := (dim M) (at level 0, format "'\' 'dim' '(' M ')'") : lmod_scope.
   End Exports.
 End fdFreeLmodDimension.
 Export fdFreeLmodDimension.Exports.
 Close Scope ring_scope.
+Close Scope lmod_scope.

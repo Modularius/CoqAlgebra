@@ -180,3 +180,27 @@ Module quotPiLmod.
   End Exports.
 End quotPiLmod.
 Export quotPiLmod.Exports.
+
+Module linCokernel.
+  Section Def.
+    Variable (R : ringType) (U V : lmodType R) (f : {linear U -> V}).
+    Definition coker := quotLmod.Pack (image f).
+  End Def.
+  Module Exports.
+    Notation cokernel := coker.
+    Notation "\coker( f )" := (coker f) (at level 0).
+  End Exports.
+End linCokernel.
+Export linCokernel.Exports.
+
+Module linCoimage.
+  Section Def.
+    Variable (R : ringType) (U V : lmodType R) (f : {linear U -> V}).
+    Definition coim := quotLmod.Pack (kernel f).
+  End Def.
+  Module Exports.
+    Notation coimage := coim.
+    Notation "\coimage( f )" := (coim f) (at level 0).
+  End Exports.
+End linCoimage.
+Export linCoimage.Exports.

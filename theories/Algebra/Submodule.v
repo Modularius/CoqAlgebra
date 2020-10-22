@@ -12,7 +12,7 @@ Set Warnings "ambiguous-paths".
 Set Implicit Arguments.
 Unset Strict Implicit.
 
-Declare Scope lmod_scope.
+Require Import Modules.
 
 Module subLmod.
   Section Def.
@@ -214,3 +214,94 @@ Module genSubLmod.
 
 End genSubLmod.
 Export genSubLmod.Exports.
+
+
+
+Module linKernel.
+  Section Def.
+    Variable (R : ringType) (U V : lmodType R) (f : {linear U -> V}).
+    Definition inKer : predPredType U := fun x => f x == 0.
+
+    Definition ker_elem := [qualify x | x \in inKer].
+
+    Lemma ker_subModule : GRing.submod_closed (ker_elem).
+    Proof. split=>[|a x y].
+      by rewrite qualifE unfold_in GRing.linear0.
+      rewrite qualifE !unfold_in !GRing.linearP -!(rwP eqP)=>Hx Hy.
+      by rewrite Hx Hy GRing.addr0 GRing.scaler0.
+    Qed.
+
+    Definition kernel := subLmodPack ker_subModule.
+  End Def.
+  Module Exports.
+    Notation kernel := kernel.
+    Notation "\ker( f )" := (kernel f) (at level 0).
+  End Exports.
+End linKernel.
+Export linKernel.Exports.
+
+
+Module linImage.
+  Section Def.
+    Variable (R : ringType) (U V : lmodType R) (f : {linear U -> V}).
+    Definition U' := option U.
+    Definition V' := option V.
+    Definition f' : U' -> V' := fun u' => match u' with Some u => Some (f u)|None => None end.
+
+    Definition preim (v : V) := {u : U | f u == v}.
+
+    Definition inIm : predPredType V :=
+    fun v : V => 
+      choose (fun u : U' => f' u == Some v) None != None.
+
+    Definition im_elem := [qualify x | x \in inIm].
+
+    Lemma im_subModule : GRing.submod_closed (im_elem).
+    Proof. split.
+      rewrite qualifE unfold_in.
+rewrite /choose/insub.
+(*case idP.
+case(choose (fun u : U' => f' u == Some 0) None) as []eqn:E.
+by rewrite E.
+assert(choose (fun u : U' => f' u == Some 0) None = Some 0).
+rewrite /choose.
+case(insub (@None U)).
+move=>x.
+simpl.
+rewrite xchooseP.*)
+Admitted. (*
+      by rewrite qualifE unfold_in GRing.linear0.
+      move=>a x y Hx Hy.
+      rewrite qualifE unfold_in GRing.linearP.
+      rewrite unfold_in in Hx; apply (rwP eqP) in Hx.
+      rewrite unfold_in in Hy; apply (rwP eqP) in Hy.
+      by rewrite Hx Hy GRing.addr0 GRing.scaler0.
+    Qed. *)
+
+    Definition image := subLmodPack im_subModule.
+  End Def.
+  Module Exports.
+    Notation image := image.
+    Notation "\image( f )" := (image f) (at level 0).
+  End Exports.
+End linImage.
+Export linImage.Exports.
+
+
+Module sublmodDS.
+  Import GRing.
+  Section Pair.
+    Variable (R : ringType) (m1 m2 : lmodType R).
+    Definition in1 : predPredType (m1*m2) := fun x => x.2 == 0.
+    Lemma factor1_subModule : submod_closed (subLmod.qualSubElem in1).
+      Proof. split=>[|r x y]; rewrite qualifE !unfold_in; [by rewrite eq_refl| rewrite -!(rwP eqP)=>/=Hx Hy];
+      by rewrite Hx Hy scaler0 addr0. Qed.
+    Definition sub1 := subLmodPack factor1_subModule.
+
+    Definition in2 : predPredType (m1*m2) := fun x => x.1 == 0.
+    Lemma factor2_subModule : submod_closed (subLmod.qualSubElem in2).
+      Proof. split=>[|r x y]; rewrite qualifE !unfold_in; [by rewrite eq_refl| rewrite -!(rwP eqP)=>/=Hx Hy];
+      by rewrite Hx Hy scaler0 addr0. Qed.
+    Definition sub2 := subLmodPack factor1_subModule.
+  End Pair.
+End sublmodDS.

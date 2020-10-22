@@ -1,3 +1,12 @@
+(******************************************************************************)
+(**)
+(******************************************************************************)
+(* Let R : ringType                                                           *)
+(******************************************************************************)
+(* lmodZeroType R == an lmodType R structure for the unit type                *)
+(* lmodRingType R == an lmodType R structure for R as a module over itself    *)
+
+
 Require Import Coq.Program.Tactics.
 From mathcomp Require Import ssreflect ssrfun eqtype choice.
 
@@ -13,7 +22,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Open Scope ring_scope.
 
-Require Import Submodule.
+Declare Scope lmod_scope.
 
 Module lmodZero.
   Section Def.

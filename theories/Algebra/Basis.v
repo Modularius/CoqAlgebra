@@ -83,7 +83,7 @@ Require Import Coq.Program.Tactics.
 From Coq.Logic Require Import FunctionalExtensionality ProofIrrelevance.
 From mathcomp Require Import ssreflect ssrfun eqtype fintype seq bigop.
 
-Require Import Algebras.
+Require Import Modules Linears.
 
 Set Warnings "-parsing". (* Some weird bug in ssrbool throws out parsing warnings*)
   From mathcomp Require Import ssrbool.
@@ -327,7 +327,7 @@ Module lmodFinBasis.
   Module Exports.
     Notation basis_number := basis_number.
     Notation lmodFinBasisType := type.
-    Notation li := li_ax.
+    Notation li := li.
     Notation spanning := spanning.
     Notation typeIsSpanning := typeSpanning.
     Notation typeIsLI := typeLI.
