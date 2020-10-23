@@ -11,3 +11,7 @@
 
 LaTeX/*
 Scrap/*
+theories/Examples/*
+theories/PathAlgebra/*
+theories/Quivers/*
+theories/Representations/*
